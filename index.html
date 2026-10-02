@@ -128,6 +128,8 @@
             line-height: 1.5; }
   .u-extra { font-size: 11px; color: #8b93a1; margin-bottom: 8px; line-height: 1.6; }
   .u-mini { padding: 2px 8px; font-size: 11px; }
+  .u-redeem { background: #274a2d; color: #8ee08e; margin-top: 6px; }
+  .u-redeem:disabled { opacity: .45; }
   .role .rdesc { flex: 1; min-width: 0; font-size: 11px; color: #8b93a1;
                  line-height: 1.55; white-space: normal; }
   .roles-intro { font-size: 12px; color: #8b93a1; line-height: 1.7; margin-bottom: 12px;
@@ -264,7 +266,11 @@ const T = {
     uForceTitle: '失效缓存并向供应商重新拉取（omp usage invalidate）',
     uForceAll: '全部强刷',
     uForceDone: '已重新抓取最新用量',
-    uResetHint: '额度券需在 omp 会话中用 /usage reset 使用（CLI 无用券入口）',
+    uResetHint: '也可在 omp 会话中用 /usage reset',
+    uRedeem: '用券重置',
+    uRedeemConfirm: p => `将消耗 ${p} 的 1 张额度券，重置其用量限额（不可逆）。确认继续？`,
+    uRedeemDone: '已消耗 1 张额度券并重置用量',
+    uRedeeming: '正在消耗额度券…',
   },
   en: {
     title: 'omp Settings Web',
@@ -336,7 +342,11 @@ const T = {
     uForceTitle: 'Invalidate cache and re-fetch from the provider (omp usage invalidate)',
     uForceAll: 'Force refresh all',
     uForceDone: 'Refreshed with latest usage',
-    uResetHint: 'Spend saved resets in an omp session via /usage reset (no CLI entry)',
+    uResetHint: 'also redeemable in an omp session via /usage reset',
+    uRedeem: 'Reset with credit',
+    uRedeemConfirm: p => `This spends 1 saved reset credit for ${p} and resets its usage limit (irreversible). Continue?`,
+    uRedeemDone: 'Spent 1 reset credit — usage reset',
+    uRedeeming: 'Spending reset credit…',
   },
 };
 let LANG = localStorage.getItem('omp-ui-lang') === 'en' ? 'en' : 'zh';
@@ -933,6 +943,15 @@ function uCard(rep) {
     e.className = 'u-note'; e.textContent = t().uCredits(rc.availableCount) + ' · ' + t().uResetHint;
     card.appendChild(e);
   }
+  if (rep.resettable) {
+    const rb = document.createElement('button');
+    rb.className = 'u-mini u-redeem';
+    const credits = (rep.resetCredits && rep.resetCredits.availableCount) || 0;
+    rb.disabled = credits < 1;
+    rb.textContent = t().uRedeem;
+    rb.onclick = e => { e.stopPropagation(); redeemUsage(rep.provider, rb); };
+    card.appendChild(rb);
+  }
   for (const n of (rep.notes || [])) {
     const e = document.createElement('div');
     e.className = 'u-note'; e.textContent = n;
@@ -1027,6 +1046,28 @@ async function invalidateUsage(provider) {
     toast(t().failed(e.message || e), true);
   } finally {
     btn.disabled = false;
+  }
+}
+
+async function redeemUsage(provider, btn) {
+  if (!confirm(t().uRedeemConfirm(provider))) return;
+  btn.disabled = true;
+  btn.textContent = t().uRedeeming;
+  try {
+    const r = await fetch('/api/usage/redeem', {method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({provider})}).then(x => x.json());
+    if (r.ok) {
+      toast(t().uRedeemDone);
+      await loadUsage();
+    } else {
+      toast(t().failed(r.error || r.code || 'unknown'), true);
+    }
+  } catch (e) {
+    toast(t().failed(e.message || e), true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = t().uRedeem;
   }
 }
 document.getElementById('u-refresh').onclick = () => loadUsage();

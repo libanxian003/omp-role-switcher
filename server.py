@@ -18,8 +18,13 @@ import subprocess
 import sys
 import time
 import webbrowser
+import sqlite3
+import urllib.request
+import urllib.error
+import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+DB = Path.home() / ".omp" / "agent" / "agent.db"
 
 HERE = Path(__file__).parent
 CONFIG = Path.home() / ".omp" / "agent" / "config.yml"
@@ -386,6 +391,306 @@ def invalidate_usage(provider):
         return {"error": err[0] if err else f"omp usage invalidate 退出码 {p.returncode}"}
     return {"ok": True, "message": (p.stdout or "").strip()}
 
+def usage_with_resettable():
+    """usage_report() 外加 resettable 标记：仅 anthropic/openai-codex
+    且 resetCredits.availableCount>0 时可重置（不透 token）。"""
+    r = usage_report()
+    if "error" in r:
+        return r
+    for rep in r.get("reports") or []:
+        rc = rep.get("resetCredits")
+        rep["resettable"] = rep.get("provider") in REDEEM_PROVIDERS \
+            and isinstance(rc, dict)
+    return r
+
+
+# ---------- 额度券重置（复刻 omp auth/resets.ts + usage/openai-codex-reset.ts） ----------
+# 仅支持 anthropic / openai-codex（omp 的 resets.list 也是这个白名单）。
+# token 只在本进程内存与出站 Authorization 头里出现，绝不写入响应/日志/文件。
+
+REDEEM_PROVIDERS = {"anthropic", "openai-codex"}
+ANTHROPIC_API = "https://api.anthropic.com"
+ANTHROPIC_BETA = "oauth-2025-04-20"
+ANTHROPIC_CLI_VER = "2.1.280"  # 对齐 omp 内嵌的 claude-cli 版本
+CODEX_API = "https://chatgpt.com/backend-api"
+RE_CREDIT_ID = re.compile(r"^[a-z0-9_-]{1,40}$")   # omp 侧 _ks
+RE_ORG_ID = re.compile(r"^[A-Za-z0-9_-]{1,128}$")  # omp 侧 Tvt
+
+# 与 omp 一致的「同 request_id 待确认」状态：首扣拿到响应后缓存，
+# 重复点击用同一 request_id 重放（服务端幂等），直到确认成功/终态。
+_redeem_pending = {}  # provider -> {"credit_id","request_id","program","remaining"}
+
+
+def _cred(provider):
+    """从 ~/.omp/agent/agent.db 读该 provider 的 oauth 凭据（只读）。"""
+    try:
+        con = sqlite3.connect(f"file:{DB}?mode=ro", uri=True, timeout=5)
+        row = con.execute(
+            "SELECT data FROM auth_credentials "
+            "WHERE provider=? AND credential_type='oauth' "
+            "AND disabled_cause IS NULL ORDER BY id", (provider,)).fetchone()
+        con.close()
+    except sqlite3.Error as e:
+        return None, f"读取凭据库失败: {e}"
+    if not row:
+        return None, f"{provider} 无 oauth 凭据"
+    try:
+        d = json.loads(row[0])
+    except json.JSONDecodeError:
+        return None, "凭据数据不是合法 JSON"
+    access = d.get("access")
+    if not isinstance(access, str) or not access:
+        return None, "凭据缺少 access token"
+    if isinstance(d.get("expires"), (int, float)) and d["expires"] <= time.time() * 1000:
+        return None, "access token 已过期，请在 omp 中重新登录后再试"
+    return {
+        "access": access,
+        "accountId": d.get("accountId") if isinstance(d.get("accountId"), str) else None,
+        "orgId": d.get("orgId") if isinstance(d.get("orgId"), str) else None,
+    }, None
+
+
+def _http(method, url, access, extra_headers=None, body=None, timeout=25):
+    """最小 HTTPS 调用，返回 (status, json_or_None, error_str_or_None)。
+    任何异常/响应体都不会把 access token 带出。"""
+    headers = {"Authorization": f"Bearer {access}",
+               "User-Agent": "omp-settings-web/1.0"}
+    for k, v in (extra_headers or {}).items():  # 大小写不敏感覆盖
+        headers = {h: x for h, x in headers.items() if h.lower() != k.lower()}
+        headers[k] = v
+    data = None
+    if body is not None:
+        headers["Content-Type"] = "application/json"
+        data = json.dumps(body).encode("utf-8")
+    req = urllib.request.Request(url, data=data, headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            raw = resp.read().decode("utf-8", "replace")
+            return resp.status, _json_or_none(raw), None
+    except urllib.error.HTTPError as e:
+        raw = e.read().decode("utf-8", "replace")[:2000]
+        return e.code, _json_or_none(raw), None
+    except Exception as e:  # URLError/timeout/ssl 等
+        return 0, None, str(e)
+
+
+def _json_or_none(raw):
+    try:
+        return json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return None
+
+
+def redeem_reset(provider):
+    """消耗一张额度券重置该 provider 用量。返回结构化结果 dict。"""
+    provider = (provider or "").strip().lower()
+    if provider not in REDEEM_PROVIDERS:
+        return {"ok": False, "code": "unsupported_provider",
+                "error": "仅 anthropic / openai-codex 支持额度券重置"}
+    cred, err = _cred(provider)
+    if err:
+        return {"ok": False, "code": "no_account", "error": err}
+    if provider == "anthropic":
+        return _redeem_anthropic(cred)
+    return _redeem_codex(cred)
+
+
+# ----- anthropic：两步确认（同 request_id 重放），对齐 omp #r 逻辑 -----
+
+def _anthropic_headers():
+    return {"accept": "application/json, text/plain, */*",
+            "anthropic-beta": ANTHROPIC_BETA,
+            # 服务端按 client surface 判定券资格（ineligible_reason:"surface"），
+            # 必须与 omp 一致伪装成 claude-cli
+            "user-agent": f"claude-cli/{ANTHROPIC_CLI_VER} (external, cli)"}
+
+
+def _anthropic_list(cred):
+    """GET /api/oauth/usage?cedar_ember=1&skip_spend=1 → 规范化券列表。"""
+    url = f"{ANTHROPIC_API}/api/oauth/usage?cedar_ember=1&skip_spend=1"
+    status, body, err = _http("GET", url, cred["access"],
+                              _anthropic_headers())
+    if err:
+        return None, {"ok": False, "code": "network_error", "error": err}
+    if status in (401, 403):
+        return None, {"ok": False, "code": "auth_error",
+                      "error": f"鉴权失败（HTTP {status}），请在 omp 中重新登录"}
+    if status != 200 or not isinstance(body, dict):
+        return None, {"ok": False, "code": f"http_{status}",
+                      "error": f"列券接口返回 HTTP {status}"}
+    blk = body.get("cedar_ember")
+    if blk is None:
+        return {"eligible": False, "grants": [], "nextGrantId": None,
+                "cooldownUntil": None}, None
+    if not isinstance(blk, dict) or not isinstance(blk.get("eligible"), bool):
+        return None, {"ok": False, "code": "malformed_response",
+                      "error": "列券响应格式不符"}
+    grants = []
+    for g in blk.get("grants") or []:
+        if not isinstance(g, dict) or not RE_CREDIT_ID.match(str(g.get("id", ""))):
+            continue
+        grants.append({
+            "id": g["id"],
+            "label": g.get("label"),
+            "remaining": g.get("resets_left", 0),
+            "expiresAt": g.get("ends_at"),
+            "usableNow": bool(g.get("usable_now")),
+            "paused": bool(g.get("paused")),
+            "clears": g.get("clears") or [],
+        })
+    nxt = blk.get("next_grant_id")
+    nxt = nxt if isinstance(nxt, str) and any(g["id"] == nxt for g in grants) else None
+    # cedar_ember 无可用券时回退 juniper_tide（对齐 omp e4 的第二条探测）
+    if nxt is None or not blk["eligible"]:
+        jt = _anthropic_list_juniper(cred)
+        if jt and (jt["nextGrantId"] or jt["grants"]):
+            return jt, None
+    return {"eligible": blk["eligible"], "grants": grants, "nextGrantId": nxt,
+            "cooldownUntil": blk.get("cooldown_until"),
+            "reason": blk.get("ineligible_reason")}, None
+
+def _anthropic_list_juniper(cred):
+    """omp e4 的第二条探测：GET .../usage?at_wall=1&skip_spend=1 → juniper_tide 键。
+    返回规范化结构（program='juniper_tide' 的虚拟券）或 None。"""
+    url = f"{ANTHROPIC_API}/api/oauth/usage?at_wall=1&skip_spend=1"
+    status, body, err = _http("GET", url, cred["access"],
+                              _anthropic_headers(), timeout=15)
+    if err or status != 200 or not isinstance(body, dict):
+        return None
+    blk = body.get("juniper_tide")
+    if not isinstance(blk, dict) or not isinstance(blk.get("eligible"), bool):
+        return None
+    usable = blk["eligible"] and blk.get("arm") == "reset" and bool(blk.get("available"))
+    grants = [{
+        "id": "juniper_tide", "label": "Claude session limit reset",
+        "program": "juniper_tide",
+        "remaining": 1 if usable else 0,
+        "expiresAt": blk.get("weekly_resets_at"),
+        "usableNow": usable, "paused": False,
+        "clears": ["anthropic:5h"],
+    }] if blk.get("arm") == "reset" else []
+    return {"eligible": blk["eligible"], "grants": grants,
+            "nextGrantId": "juniper_tide" if usable else None,
+            "cooldownUntil": blk.get("next_available_at"),
+            "reason": blk.get("ineligible_reason"),
+            "program": "juniper_tide"}
+
+
+def _redeem_anthropic(cred):
+    listed, err = _anthropic_list(cred)
+    if err or listed is None:
+        return err or {"ok": False, "code": "credit_list_failed",
+                       "error": "列券失败"}
+    program = listed.get("program") or "cedar_ember"
+    credit = next((g for g in listed["grants"] if g["id"] == listed["nextGrantId"]), None)
+    if not listed["eligible"] or not credit or not credit["usableNow"] \
+            or credit["remaining"] < 1:
+        code = "ineligible" if listed["grants"] else "no_credit"
+        return {"ok": False, "code": code,
+                "error": listed.get("reason") or "当前没有可用额度券"}
+    # orgId：凭据里有就直接用，否则 GET /profile
+    org = cred.get("orgId")
+    if not (isinstance(org, str) and RE_ORG_ID.match(org)):
+        status, body, err = _http("GET", f"{ANTHROPIC_API}/api/oauth/profile",
+                                  cred["access"], _anthropic_headers(), timeout=5)
+        org = None
+        if isinstance(body, dict):
+            o = body.get("organization")
+            org = (o.get("uuid") if isinstance(o, dict) else None) \
+                  or body.get("organization_uuid")
+        if not (isinstance(org, str) and RE_ORG_ID.match(org)):
+            return {"ok": False, "code": "organization_unavailable",
+                    "error": "无法解析组织 ID"}
+    # 两步确认：pending 里已有同券同 request_id 才视为确认；否则首扣并缓存
+    pend = _redeem_pending.get("anthropic")
+    if pend and pend["credit_id"] != credit["id"]:
+        pend = None  # 券变了 → 重新开始
+    if pend is None:
+        pend = {"credit_id": credit["id"], "request_id": str(uuid.uuid4()),
+                "remaining": credit["remaining"]}
+        _redeem_pending["anthropic"] = pend
+    if program == "juniper_tide":
+        body = {"program": "juniper_tide"}
+    else:
+        body = {"program": "cedar_ember", "grant_id": credit["id"],
+                "request_id": pend["request_id"]}
+    status, resp, err = _http(
+        "POST", f"{ANTHROPIC_API}/api/organizations/{org}/reset_rate_limits",
+        cred["access"], _anthropic_headers(), body=body)
+    if err:
+        return {"ok": False, "code": "network_error", "error": err}
+    if status != 200 or not isinstance(resp, dict) or not isinstance(resp.get("result"), str):
+        code = {401: "auth_error", 403: "auth_error", 429: "rate_limited"}.get(
+            status, f"http_{status}")
+        _redeem_pending.pop("anthropic", None)
+        return {"ok": False, "code": code, "error": f"HTTP {status}"}
+    result = resp["result"].strip()
+    code = {"already_used": "already_redeemed",
+            "not_limited": "nothing_to_reset"}.get(result, result)
+    if result == "reset":
+        _redeem_pending.pop("anthropic", None)
+        invalidate_usage("anthropic")
+        return {"ok": True, "code": "reset", "cleared": resp.get("cleared") or []}
+    if code in ("already_redeemed", "nothing_to_reset", "ineligible"):
+        _redeem_pending.pop("anthropic", None)
+    return {"ok": False, "code": code,
+            "error": resp.get("reason") or f"result={result}"}
+
+
+# ----- openai-codex：单步（request_id 幂等），对齐 omp JHe/a4 -----
+
+def _codex_headers(cred):
+    h = {}
+    if cred.get("accountId"):
+        h["ChatGPT-Account-Id"] = cred["accountId"]
+    return h
+
+
+def _redeem_codex(cred):
+    url = f"{CODEX_API}/wham/rate-limit-reset-credits"
+    status, body, err = _http("GET", url, cred["access"], _codex_headers(cred))
+    if err:
+        return {"ok": False, "code": "network_error", "error": err}
+    if status in (401, 403):
+        return {"ok": False, "code": "auth_error",
+                "error": f"鉴权失败（HTTP {status}），请在 omp 中重新登录"}
+    if status != 200 or not isinstance(body, dict):
+        return {"ok": False, "code": f"http_{status}", "error": f"HTTP {status}"}
+    credits = [c for c in (body.get("credits") or [])
+               if isinstance(c, dict) and (c.get("status") or "available") == "available"
+               and isinstance(c.get("id"), str)]
+    if not credits:
+        return {"ok": False, "code": "no_credit", "error": "当前没有可用额度券"}
+    # 选最早过期的（omp ZHe 逻辑）
+    def expkey(c):
+        try:
+            return float("inf") if not c.get("expires_at") else \
+                __import__("datetime").datetime.fromisoformat(
+                    c["expires_at"].replace("Z", "+00:00")).timestamp()
+        except (ValueError, TypeError):
+            return float("inf")
+    credit = min(credits, key=expkey)
+    pend = _redeem_pending.get("openai-codex")
+    if not pend or pend["credit_id"] != credit["id"]:
+        pend = {"credit_id": credit["id"], "request_id": str(uuid.uuid4())}
+        _redeem_pending["openai-codex"] = pend
+    status, resp, err = _http(
+        "POST", f"{CODEX_API}/wham/rate-limit-reset-credits/consume",
+        cred["access"], _codex_headers(cred),
+        body={"credit_id": credit["id"],
+              "redeem_request_id": pend["request_id"],
+              "account_id": cred.get("accountId")})
+    if err:
+        return {"ok": False, "code": "network_error", "error": err}
+    code = (resp or {}).get("code") if isinstance(resp, dict) else None
+    code = code if isinstance(code, str) else ("reset" if 200 <= status < 300 else f"http_{status}")
+    if code == "reset":
+        _redeem_pending.pop("openai-codex", None)
+        invalidate_usage("openai-codex")
+        return {"ok": True, "code": "reset"}
+    _redeem_pending.pop("openai-codex", None)
+    return {"ok": False, "code": code, "error": f"consume 返回 {code}"}
+
 
 class Handler(BaseHTTPRequestHandler):
     def _send(self, code, body, ctype="application/json; charset=utf-8"):
@@ -411,7 +716,7 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/api/visibility":
             self._send(200, json.dumps(visibility_state(), ensure_ascii=False))
         elif path == "/api/usage":
-            self._send(200, json.dumps(usage_report(), ensure_ascii=False))
+            self._send(200, json.dumps(usage_with_resettable(), ensure_ascii=False))
         else:
             self._send(404, "{}")
 
@@ -445,6 +750,9 @@ class Handler(BaseHTTPRequestHandler):
         elif self.path == "/api/usage/invalidate":
             self._send(200, json.dumps(
                 invalidate_usage(payload.get("provider")), ensure_ascii=False))
+        elif self.path == "/api/usage/redeem":
+            self._send(200, json.dumps(
+                redeem_reset(payload.get("provider")), ensure_ascii=False))
         else:
             self._send(404, "{}")
 
