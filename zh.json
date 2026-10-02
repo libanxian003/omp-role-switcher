@@ -418,28 +418,28 @@
     "astGrep": "AST 工具"
   },
   "advisor.enabled": {
-    "name": "Advisor 被动审查",
-    "desc": "启用 Advisor：为会话配一个担任 advisor 角色的第二模型，被动审查主模型的每个回合并注入笔记。开启后每个回合多出审查调用，费用与延迟会增加；默认 false。需先在 modelRoles 里给 advisor 角色绑定模型。"
+    "name": "Advisor 副顾问审查",
+    "desc": "给会话配一个担任 advisor 角色的第二模型，它会被动审查主模型每个回合的工作并注入建议。默认关闭（false）。开启后每回合多一次审查调用，费用和延迟都会上升；需要先在 modelRoles 里给 advisor 角色绑定一个可用模型才会生效，也可用 /advisor on 或 --advisor 临时开启。"
   },
   "advisor.evictStaleResults": {
-    "name": "淘汰旧审查输出",
-    "desc": "每次 advisor 审查前，把上一次审查留下的 read/grep/glob 工具输出替换成简短占位符，只保留最新一次审查的完整输出。开（默认）可避免审查输出反复挤占上下文，间接省 token；关则每次审查的全部输出都保留在上下文中。"
+    "name": "清理旧审查输出",
+    "desc": "Advisor 每次做审查前，把它更早几次审查里 read/grep/glob 的工具输出替换成简短占位符，只保留最新一次的完整输出。默认开启，避免审查记录反复占满上下文；关闭后所有历史审查输出都留在上下文里，token 消耗更大。"
   },
   "advisor.immuneTurns": {
     "name": "打断豁免回合数",
-    "desc": "advisor 提出一次 concern（关切）或 blocker（阻塞）并打断主模型后，接下来的 N 个主回合内，同类意见改为非打断式静默投递，避免连环打断。默认 3。设大可减少打断频率、提高推进速度，但响应关切会更慢。"
+    "desc": "Advisor 的关切（concern）或阻塞（blocker）意见打断过一次主回合后，接下来这么多回合内，后续的关切改成不打断的旁注方式送达（阻塞级意见不受影响）。默认 3。调大可以减少连环打断、让推进更顺，但响应审查意见会更慢。"
   },
   "advisor.maxNotesPerUpdate": {
     "name": "单次建议条数上限",
-    "desc": "每次 advisor 提示更新最多接受的非 blocker 建议笔记条数，范围 1–32（TUI 快捷选项 1–5），默认 4。blocker（阻塞级）意见不受此限制。调小可降噪省 token，调大可收到更全面的审查意见。"
+    "desc": "每次 Advisor 审查更新最多接受的非阻塞建议条数，范围 1–32，默认 4（界面提供 1–5 快捷选项）。阻塞级意见不受此限制，且高严重度的意见只会顶替同一次审查里的待投递条目。调小更省 token、噪音更少。"
   },
   "advisor.reviewInterval": {
     "name": "审查间隔回合数",
-    "desc": "没有 WATCHDOG.yml 名册时的默认审查节奏：每 N 个合格主回合（更新）审查一次，1 = 每个回合都审查（默认）。被跳过的回合会并入下一次排期审查一起送审。调大可降低审查开销。"
+    "desc": "没有 WATCHDOG.yml 顾问名册时，默认顾问每隔多少个合格的主回合审查一次。默认 1，即每个回合都审；被跳过的回合会攒到下一次排期审查一起送审。调大可以降低审查开销，代价是意见来得更晚。"
   },
   "advisor.reviewMode": {
     "name": "审查模式",
-    "desc": "无 WATCHDOG.yml 名册时 advisor 的默认审查节奏：turn = 每个主回合（每次工具调用轮）都审查；agent-end = 只在主代理最终产出（final yield）时审查，每次运行只审一次。默认 turn，审查更及时但开销更大。",
+    "desc": "没有 WATCHDOG.yml 名册时顾问的默认节奏：turn（默认）= 每个主回合都审查；agent-end = 只在主代理给出最终产出时审一次，整个任务只审一轮。turn 更及时但开销大，agent-end 省钱但中途问题发现得晚。名册里的顾问可以各自设置。",
     "options": [
       "turn",
       "agent-end"
@@ -447,7 +447,7 @@
   },
   "advisor.syncBacklog": {
     "name": "审查积压同步等待",
-    "desc": "主代理暂停、等待 advisor 审查积压降到阈值以下：数值（1/3/5）最多等 30 秒；strict 无时间上限，等全部排期审查完成；off（默认）关闭追赶等待。中止、失败或会话释放会解除等待。开启可保证意见被消化后再继续，代价是可能卡住等待。",
+    "desc": "当 Advisor 审查排队的积压达到这个档位数时，主代理最多暂停 30 秒等它追上：off（默认）从不等待；1/3/5 在积压超过该数值时最多等 30 秒；strict 不限时间，一直等到排期审查完成。开启能保证建议被消化后再继续，代价是可能卡住等待；中止、失败或会话释放会解除等待。",
     "options": [
       "off",
       "1",
@@ -457,90 +457,90 @@
     ]
   },
   "ask.enabled": {
-    "name": "ask 提问工具",
-    "desc": "启用 ask 工具：让模型在需要决策时以交互选项的方式向你提问（如多个方案二选一）。默认开启。关闭后模型只能靠猜测推进或在回复文字里向你提问。"
+    "name": "ask 交互提问工具",
+    "desc": "启用 ask 工具：模型拿不定主意时会弹出交互式选项菜单向你提问（例如多个方案让你选）。默认开启。关闭后模型只能自行猜测，或在回复文字里向你提问，交互体验变差。"
   },
   "ask.notify": {
-    "name": "提问系统通知",
-    "desc": "ask 工具等待你输入时是否发系统通知（on/off，默认 on）。开启后即使你不在终端前，提问到达也会收到系统级提醒，避免会话干等；关闭则只在 TUI 内呈现。",
+    "name": "提问时系统通知",
+    "desc": "ask 工具弹出提问、正在等你输入时，是否发送操作系统级通知：on（默认）= 发通知，即使你不盯着终端也能知道它在等你；off = 只在界面内提示。跑长任务时建议保持开启，避免会话干等。",
     "options": [
       "on",
       "off"
     ]
   },
   "ask.timeout": {
-    "name": "提问自动超时",
-    "desc": "ask 提问等待超过该秒数后自动选择推荐选项继续执行；0（默认）表示不超时、一直等。适合无人值守场景：挂起任务不会被一个提问卡死，但自动选择的选项可能不合你意。"
+    "name": "提问自动选择超时",
+    "desc": "ask 提问等待超过这个秒数后，自动替你选推荐选项继续执行；0（默认）= 永不超时、一直等你。适合无人值守跑批：任务不会被一个提问卡死，但自动选的选项未必合你意。"
   },
   "astEdit.enabled": {
-    "name": "ast_edit 工具",
-    "desc": "启用 ast_edit 工具：基于 AST（抽象语法树）的结构化代码改写，适合重命名、批量结构替换等文本替换易出错的操作。默认开启。关掉后只剩文本级编辑工具，结构性重构可靠性下降。"
+    "name": "ast_edit 结构化改写",
+    "desc": "启用 ast_edit 工具：基于 AST（抽象语法树，即代码的语法结构）做结构化改写，比如重命名符号、批量替换某种调用形态，比纯文本替换更不容易改错地方。默认开启。关掉后只剩文本级编辑，结构性重构的可靠性会下降。"
   },
   "astGrep.enabled": {
-    "name": "ast_grep 工具",
-    "desc": "启用 ast_grep 工具：按语法树模式（而非正则）做结构性代码搜索，能匹配「所有同类调用」而不受换行、空白影响。默认关闭。需要精确模式匹配搜索时再开即可。"
+    "name": "ast_grep 结构化搜索",
+    "desc": "启用 ast_grep 工具：按语法树模式（而不是正则表达式）搜索代码，能精确匹配「所有这类函数调用」而不受换行、缩进干扰。默认关闭。需要做精确的结构化代码搜索时再开，普通文本搜索用 grep 就够。"
   },
   "async.enabled": {
-    "name": "异步命令与后台任务",
-    "desc": "启用异步 bash 命令与后台任务执行：长时间运行的命令可转入后台，结果完成后异步送达，模型期间可以继续干别的。默认开启。关闭后所有命令都必须同步等完，长命令会阻塞整个回合。"
+    "name": "异步与后台任务",
+    "desc": "启用异步 bash 命令和后台任务执行：跑得久的命令可以转后台，结果稍后送达，模型在等待期间继续干别的。默认开启。关闭后所有命令都必须同步等完，长命令会阻塞整个回合。"
   },
   "async.maxJobs": {
-    "name": "后台任务数上限",
+    "name": "后台任务数量上限",
     "desc_en": "Cap on concurrently running background/async tasks, default 100; new tasks wait for a free slot beyond it, stopping the model from sprawling unbounded background processes that would drag the machine down. Rarely needs changing.",
-    "desc": "同时运行的后台/异步任务数量上限，默认 100。超出上限时新任务需等有空位。防止模型无节制地铺开大量后台进程拖垮机器；一般无需修改。"
+    "desc": "正在运行（running）的后台任务数量上限，默认 100，最小为 1；已停放（parked）或排队中的任务不占这个名额。用于防止模型无节制地铺开大量后台进程拖垮机器，一般不用改。"
   },
   "auth.accountPolicies": {
-    "name": "账户策略列表",
+    "name": "OAuth 账号使用策略",
     "desc_en": "Array of account policies for authentication, empty by default (inferred, undocumented upstream); understood from the name and the auth family as per-account usage policies such as routing or limit preferences — single-account users need not set it.",
-    "desc": "认证相关的账户策略数组，默认空数组。（推测，官方未说明）按键名与所属 auth 家族理解：用于为不同账户配置使用策略（如路由/限流偏好）；普通单账户用户无需配置。"
+    "desc": "为同一提供商下的多个已保存 OAuth 账号配置使用策略的数组。每项包含 provider（提供商 id，如 anthropic）、account（按 email/accountId/projectId 匹配某个账号），可选 priority（优先级）和 reservePct（该账号保留多少百分比的配额不花）。用于多账号轮换时的配额保护；单账号用户留空即可。"
   },
   "auth.broker.token": {
     "name": "认证代理令牌",
     "desc_en": "Credential token for the auth broker service (env OMP_AUTH_BROKER_TOKEN), used when authorization is delegated through a broker; credential-type setting, redacted in `omp config list` output. Leave empty when no broker is used.",
-    "desc": "auth broker（认证代理/中转服务）的凭证令牌，对应环境变量 OMP_AUTH_BROKER_TOKEN。用于通过代理服务完成委托授权的场景；属于凭据类设置，`omp config list` 输出中会被脱敏。未使用 broker 时留空即可。"
+    "desc": "auth broker（认证中转服务）的 Bearer 令牌。配合 auth.broker.url 使用，把凭据分发交给外部代理统一管理。环境变量 OMP_AUTH_BROKER_TOKEN 优先于配置文件，broker 自带的令牌文件是兜底。属于凭据，列表输出会脱敏；不用 broker 时留空。"
   },
   "auth.broker.url": {
     "name": "认证代理地址",
     "desc_en": "URL of the auth broker service (env OMP_AUTH_BROKER_URL); together with auth.broker.token it delegates OAuth-style authorization flows to the broker, useful when tokens for subscription accounts are managed centrally. (inferred, undocumented upstream)",
-    "desc": "auth broker 服务的 URL，对应环境变量 OMP_AUTH_BROKER_URL。（推测，官方未说明）配合 auth.broker.token 使用：把 OAuth 等授权流程交给该代理完成，适合订阅制账号统一管理令牌的场景。"
+    "desc": "auth broker 服务的 URL，配合 auth.broker.token 使用：让多个 omp 实例或多台机器通过一个中转服务共享认证快照（token 池、账号轮换状态）。环境变量 OMP_AUTH_BROKER_URL 优先；凭据只认全局配置，项目级配置不生效。不自建中转就留空。"
   },
   "autoResume": {
-    "name": "自动恢复会话",
-    "desc": "启动 omp 时自动恢复当前目录最近一次会话，等效于每次都带 -c 启动。默认 false，即每次启动都是全新会话。经常在同一目录连续工作的人可开启，省去手动 /resume。"
+    "name": "启动自动恢复会话",
+    "desc": "启动 omp 时自动恢复当前目录下最近一次的会话，相当于每次都带 -c 启动。默认 false，即每次启动都是全新会话。经常在一个目录里连续干活可以开启，省去手动恢复。"
   },
   "autocompleteMaxVisible": {
-    "name": "补全可见行数",
-    "desc": "输入框自动补全下拉列表最多可见的条目数，范围 3–20，默认 10。纯界面偏好：调大少翻页但占屏，调小更紧凑。"
+    "name": "补全列表可见行数",
+    "desc": "输入框自动补全下拉列表最多显示多少条候选，范围 3–20，默认 10。纯界面偏好：调大少翻页但占屏幕，调小更紧凑。"
   },
   "autolearn.autoContinue": {
     "name": "自动学习捕获回合",
-    "desc": "agent 停止时自动追加一轮私有「捕获回合」，把本次运行的经验写入记忆；开启会消耗额外 token。默认 false，即只保留常驻的自动学习引导语、不主动跑捕获回合。与 autolearn.enabled 配合使用。"
+    "desc": "开启后，agent 每次正常停止时自动追加一轮私有的「经验捕获」回合，把本次运行的教训写入记忆，会额外消耗一次调用的 token。默认 false：只保留常驻的学习引导语，不主动跑捕获。中止的回合、计划模式回合和目标循环回合会跳过。需先开 autolearn.enabled。"
   },
   "autolearn.enabled": {
     "name": "自动经验学习",
-    "desc": "agent 停止后提示它把本次运行的经验教训沉淀到记忆（learned.md），并创建/增强独立的托管 skill。官方标注实验性，默认 false（本机已改为 true）。会额外消耗少量 token，换来跨会话经验积累。"
+    "desc": "实验性功能：开启后在系统提示里加入常驻的「经验捕获」引导，并在有记忆后端时开放 learn 工具，让 agent 把本次运行的经验沉淀为可跨会话复用的记忆或托管技能（managed-skills）。默认 false。开启会额外消耗少量 token，换来经验积累。"
   },
   "autolearn.minToolCalls": {
-    "name": "学习触发最少工具数",
+    "name": "学习触发工具数下限",
     "desc_en": "Minimum tool-call count for a session to trigger auto learning, default 5 (this machine: 20): trivial sessions below it are skipped instead of spending tokens on experience capture; raise it to learn only from substantial sessions.",
-    "desc": "触发自动学习的会话工具调用次数下限，默认 5（本机已改为 20）：低于该次数的琐碎会话不值得花 token 做经验捕获，直接跳过。调大可只在真正有干货的会话里学习。"
+    "desc": "一个主回合至少要完成这么多次工具调用，停止时才具备自动学习捕获的资格，默认 5。低于这个数的琐碎会话不值得花 token 做经验提取，直接跳过。调大可只在真正有实质工作的会话里学习。"
   },
   "bash.allowCompoundCommands": {
-    "name": "复合命令逐条评估",
-    "desc": "对命令里的字面量 && 链逐段评估审批：未匹配任何规则的段按普通 bash 审批策略与当前模式处理。默认 false，即整条复合命令作为整体评估。开启后 `cmd1 && cmd2` 中 cmd2 可以单独被放行或拦截，粒度更细。"
+    "name": "复合命令逐段审批",
+    "desc": "对形如 `cmd1 && cmd2` 的字面量 && 链逐段评估审批规则：每段独立匹配 bash.patterns，匹配不上的段沿用普通 bash 审批策略。默认 false，即整条复合命令作为整体评估，allow 规则必须匹配整条命令。开启后粒度更细，能让「安全的 cmp + 危险的 rm」这类链按段放行或拦截。"
   },
   "bash.autoBackground.enabled": {
-    "name": "命令自动转后台",
-    "desc": "运行时间过长的 bash 命令自动转入后台，结果稍后异步送达，模型不必干等。默认开启。让长构建、长测试不阻塞回合推进，是提升长任务效率的关键开关。"
+    "name": "长命令自动转后台",
+    "desc": "bash 命令运行超过 bash.autoBackground.thresholdMs 就自动转入后台，结果完成后异步送达，模型不用干等。默认开启，是长构建、长测试不阻塞回合的关键开关。"
   },
   "bash.autoBackground.thresholdMs": {
     "name": "转后台时间阈值",
     "desc_en": "A bash command running longer than this many milliseconds (default 60000 = 60 seconds) is moved to background automatically; smaller frees the model earlier but output arrives later, larger runs more commands synchronously with immediate results.",
-    "desc": "bash 命令运行超过该毫秒数（默认 60000，即 60 秒）自动转后台。调小让模型更早解放，但命令输出会稍后才到；调大则更多命令同步执行、结果立即可见。"
+    "desc": "bash 命令连续运行超过这个毫秒数（默认 60000，即 60 秒）就自动转后台。调小让模型更早解放去干别的，但结果会晚到；调大则更多命令同步执行、结果立即可见。"
   },
   "bash.direnv": {
-    "name": "direnv 自动加载",
-    "desc": "auto（默认）= 启动 bash 会话时自动加载仓库的 direnv/devenv `.envrc`，devenv 工具与环境变量无需手动 `direnv exec` 即可用；off = 不加载。始终尊重 direnv 的 allow 名单：未经 `direnv allow` 的 `.envrc` 绝不执行。",
+    "name": "direnv 环境自动加载",
+    "desc": "auto（默认）= 启动 bash 会话时自动加载仓库里的 direnv/devenv `.envrc`，让 devenv 工具和环境变量无需手动 `direnv exec` 就可用；off = 不加载。安全性有保证：未经 `direnv allow` 批准的 .envrc 绝不执行。",
     "options": [
       "auto",
       "off"
@@ -548,81 +548,81 @@
   },
   "bash.direnvLoadTimeoutMs": {
     "name": "direnv 加载超时",
-    "desc": "等待首次 `direnv export` 完成的最长时间，默认 30000 毫秒（冷启动的 devenv shell 可能很慢）。超时后会话不带 direnv 环境继续运行，工具可能缺失但不会被卡死。"
+    "desc": "首次执行 `direnv export` 的最长等待毫秒数，默认 30000（30 秒）。冷启动的 devenv shell 可能很慢；超时后会话不带 direnv 环境继续运行，只是相关工具可能缺失，不会卡死。"
   },
   "bash.enabled": {
-    "name": "bash 工具开关",
-    "desc": "启用 bash 工具（执行 shell 命令）。默认开启。关闭后模型无法执行任何命令，只能读写文件，适合极高风险环境下的只读会话。"
+    "name": "bash 命令工具",
+    "desc": "启用 bash 工具，让模型能执行 shell 命令（跑测试、构建、查系统状态等）。默认开启。关闭后模型无法执行任何命令、只能读写文件，适合只读审查等高风险场景，但日常编码基本离不开它。"
   },
   "bash.patterns": {
-    "name": "bash 审批规则",
-    "desc": "有序的 bash 命令审批规则数组，每项含 match（匹配模式，仅支持 * 通配）与 approval（如 deny/prompt）。默认内置一组危险命令拦截：rm -rf /、mkfs、dd 写盘、fork 炸弹等直接 deny，shutdown/reboot 需 prompt 确认。规则按顺序生效，可自定义增删。"
+    "name": "bash 命令审批规则",
+    "desc": "按顺序匹配的 bash 命令审批规则数组，每项含 match（只支持 * 通配符的模式）和 approval（allow/prompt/deny）。内置默认拦截了格式化磁盘、dd 写盘、fork 炸弹等危险命令（deny），shutdown/reboot 需确认（prompt）。第一条匹配的规则生效；这是审批策略不是沙箱，被放行的命令仍有完整系统权限。"
   },
   "bashInterceptor.enabled": {
-    "name": "bash 命令拦截器",
-    "desc": "拦截「有专用工具」的 shell 命令并阻止执行，提示模型改用专用工具（如用 read 代替 cat）。默认 false（本机已改为 false 保持一致）。开启可让模型养成用结构化工具的习惯，输出质量与 gitignore 遵从性更好，但可能显得更啰嗦。"
+    "name": "bash 命令拦截引导",
+    "desc": "拦截那些有专用工具可用的 shell 命令（如 cat、grep、find），阻止执行并提示模型改用对应的专用工具（read/grep/glob）。默认关闭。开启能养成模型用结构化工具的习惯——专用工具遵守 .gitignore、输出更规整——但偶尔会让简单的 shell 用法被拦下。"
   },
   "bashInterceptor.patterns": {
     "name": "拦截规则集",
     "desc_en": "Interception rules for bashInterceptor, each with pattern (regex), tool (the tool to use instead) and message (hint shown to the model). Defaults: cat/head/tail to read, grep/rg to grep, find/fd to glob, sed -i/perl -i/awk in-place to edit, echo redirection to write, nohup and dev/watch-style commands to named bash services.",
-    "desc": "bashInterceptor 的拦截规则数组，每项含 pattern（正则）、tool（应改用的工具）、message（给模型看的提示）。默认规则：cat/head/tail→read、grep/rg→grep、find/fd→glob、sed -i/perl -i/awk inplace→edit、echo 重定向→write、nohup 与 dev/watch 类命令→带 name 的 bash 服务。"
+    "desc": "bashInterceptor 的规则数组，每项含 pattern（正则）、tool（应改用的工具）、message（给模型看的提示）。默认规则覆盖：cat/head/tail→read、grep/rg→grep、find/fd→glob、sed -i/perl -i→edit、echo 重定向→write、nohup 及 dev/watch 类命令→具名 bash 服务。仅 bashInterceptor.enabled 开启时生效。"
   },
   "branchSummary.enabled": {
-    "name": "离开分支生成摘要",
-    "desc": "切换/离开一个 git 分支时提示（prompt）模型生成分支工作摘要，方便留档与回溯。默认 false（本机已改为 true）。开启后每次换分支会多一次模型调用，费用略增。"
+    "name": "切分支时询问摘要",
+    "desc": "用会话树（/tree 或双击 Esc）跳回某个历史节点、即将离开当前分支时，弹出「是否为这段分支生成摘要」的询问；选摘要则模型把离开的分支压成一段总结注入上下文再跳转。默认 false。注意这里的分支是会话历史树的分支，与 git 分支无关。开启后每次跳分支多一次可选的模型调用。"
   },
   "branchSummary.reserveTokens": {
-    "name": "分支摘要保留额度",
+    "name": "分支摘要预留额度",
     "desc_en": "Context tokens reserved for generating branch summaries, default 16384 (inferred, undocumented upstream); a retention mechanism like compaction.reserveTokens that guarantees room for summary generation; rarely needs changing.",
-    "desc": "为生成分支摘要预留的上下文 token 额度，默认 16384。（推测，官方未说明）类似 compaction.reserveTokens 的保留机制，保证摘要生成有足够空间；一般无需修改。"
+    "desc": "生成会话分支摘要时预留的上下文 token 余量，默认 16384。作用是保证摘要调用有足够空间完成，而不是摘要本身的长度；一般无需修改。"
   },
   "browser.cdpUrl": {
-    "name": "浏览器 CDP 端点",
-    "desc": "默认的 CDP HTTP 发现端点（如 http://127.0.0.1:9222）：设置后浏览器自动化附着到该地址的既有浏览器，而不是新开一个。工具调用里的显式 app.cdp_url 或 app.path 优先于本设置。适合复用你手动启动的带调试端口的 Chrome。"
+    "name": "接管已有浏览器",
+    "desc": "默认的 CDP（Chrome DevTools 协议）HTTP 发现端点，例如 http://127.0.0.1:9222。设置后浏览器自动化直接附着到你手动启动的、开了调试端口的 Chrome，而不是新起一个。单次工具调用里显式给的 app.cdp_url 或 app.path 优先于此设置。"
   },
   "browser.cmux": {
-    "name": "cmux 界面自动化",
-    "desc": "检测到 cmux socket 时，用 cmux 的 WKWebView 界面执行浏览器自动化。默认开启；环境变量 PI_BROWSER_CMUX=0/1 可覆盖。无 cmux 环境时自动落到普通 Chromium，无需关心。"
+    "name": "cmux 网页视图",
+    "desc": "检测到 cmux socket（macOS 终端环境）时，用 cmux 的 WKWebView 界面执行浏览器自动化。默认 true；环境变量 PI_BROWSER_CMUX=0/1 可覆盖。没有 cmux 时自动回退普通 Chromium，非 macOS 用户无需关心。"
   },
   "browser.enabled": {
-    "name": "浏览器工具",
-    "desc": "启用浏览器 eval prelude：模型可用脚本驱动 Chromium（Puppeteer）完成网页操作、抓取与截图。默认开启。关闭后所有网页自动化能力不可用，只保留普通 URL 抓取。"
+    "name": "浏览器自动化",
+    "desc": "启用浏览器 eval 预置接口：模型可以用脚本驱动 Chromium（Puppeteer）做网页操作、抓取和截图。默认开启。关闭后所有网页自动化能力不可用，只剩普通 URL 抓取。"
   },
   "browser.freezeOnTurnEnd": {
     "name": "回合结束冻结标签页",
-    "desc": "回合结束时冻结 omp 自有的无头浏览器标签页，动画页面在闲置时不再消耗 CPU/GPU；下次使用自动解冻，open 时传 persist:true 可让单个标签页豁免。默认开启。省资源，无副作用。"
+    "desc": "回合结束时冻结 omp 自己管理的无头浏览器标签页，动画网页在空闲时不再白白消耗 CPU/GPU；下次用到自动解冻，open 时传 persist:true 可让某页豁免。默认开启，省资源无副作用。"
   },
   "browser.headless": {
     "name": "无头模式",
-    "desc": "浏览器以无头（headless）模式启动，不显示窗口。默认 true。改为 false 会弹出可见的浏览器界面，适合想肉眼围观模型操作网页的场景，服务器/无显示环境必须保持 true。"
+    "desc": "浏览器以无头（headless，无窗口）模式启动，默认 true。改成 false 会弹出可见的浏览器界面，适合想肉眼围观模型操作网页的场景；服务器等无显示环境必须保持 true。"
   },
   "browser.idleCloseSec": {
-    "name": "标签页空闲回收",
-    "desc": "omp 自有的无头浏览器标签页与 Tern 画中画空闲超过该秒数（默认 1800，即 30 分钟）后自动关闭释放资源；0 = 永不关闭（会话销毁时仍会回收）。不会触碰 relay/CDP/外部启动的浏览器或其他会话的标签页。"
+    "name": "空闲标签页回收",
+    "desc": "omp 自有的无头浏览器标签页和 Tern 画中画空闲超过这个秒数（默认 1800，即 30 分钟）后自动关闭释放资源；0 = 永不自动关（但会话结束仍会回收）。不会影响通过 Relay、CDP 接入的浏览器或其他会话的标签页。"
   },
   "browser.relay": {
-    "name": "浏览器 Relay 接管",
-    "desc": "通过 omp browser relay 驱动你自己的 Chrome 标签页（先执行 `omp browser-relay install` 安装扩展；relay 服务器在浏览器 prelude 需要时自动启动）。默认 false。开启后可见浏览器操作发生在你熟悉的浏览器里；优先级高于 browser.cdpUrl，PI_BROWSER_RELAY=0/1 可覆盖。"
+    "name": "接管自己的 Chrome",
+    "desc": "通过 omp browser relay 驱动你自己已打开的 Chrome 标签页（先用 `omp browser-relay install` 装一次扩展；需要时中继服务会自动启动）。默认 false。好处是能看到和操作真实浏览器里的登录态页面；优先级高于 browser.cdpUrl，PI_BROWSER_RELAY=0/1 可覆盖。"
   },
   "browser.relayUrl": {
     "name": "Relay 服务地址",
-    "desc": "omp browser relay 的端点地址，默认 http://127.0.0.1:9224。仅在使用 browser.relay 时有意义；relay 服务与浏览器通常同机，无需修改。"
+    "desc": "omp browser relay 的端点地址，默认 http://127.0.0.1:9224。只在 browser.relay 开启时有意义；中继和浏览器通常跑在同一台机器，一般不用改。"
   },
   "browser.screenshotDir": {
     "name": "截图保存目录",
-    "desc": "浏览器截图的保存目录，支持 ~（如 ~/Downloads、~/Desktop、Android 的 /sdcard/Download）。未设置时截图写到临时文件。固定目录便于事后翻找模型截过的图。"
+    "desc": "浏览器截图的保存目录，支持 ~ 缩写（如 ~/Downloads、~/Desktop）。不设时截图写到临时文件。设一个固定目录便于事后翻找模型截过的图。"
   },
   "browser.tern": {
     "name": "Tern 画中画浏览",
-    "desc": "在 Tern 面板中，浏览器标签页以画中画（原生 webview）悬浮在 omp 窗口上，而不是无头 Chromium；找不到可宿主的 Tern 窗口时回退 Chromium。显式 app 选项、relay 与 cdpUrl 优先；headed:false 或 app.tern:false 可对单次 open 豁免；PI_BROWSER_TERN=0/1 可覆盖。默认 true。"
+    "desc": "在 Tern 桌面面板环境中，浏览器标签页以画中画原生 webview 悬浮在 omp 窗口上，而不是无头 Chromium；找不到可承载的 Tern 窗口时自动回退 Chromium。默认 true。显式 app 选项、Relay 和 CDP 优先；单次 open 可用 headed:false 或 app.tern:false 豁免，PI_BROWSER_TERN=0/1 可覆盖。"
   },
   "checkpoint.enabled": {
-    "name": "上下文检查点",
-    "desc": "启用 checkpoint 与 rewind 工具：在关键节点保存上下文检查点，之后可以回滚到检查点重来。默认 false。做高风险大改动前开启，可多一层「时光机」保障；开启会占用额外存储。"
+    "name": "探索检查点工具",
+    "desc": "启用 checkpoint 与 rewind 这对工具：模型开始一段探索性调查前打 checkpoint，调查完用 rewind 把中间过程折叠成一份报告再回到主线。默认 false。注意它只保存对话上下文位置，不做 git 提交也不备份文件——想保护代码改动请用 git。会话同时只允许一个活跃检查点。"
   },
   "claudeResets.autoRedeem": {
-    "name": "Claude 重置自动兑换",
-    "desc": "自动花掉可用的 Claude Cedar/Juniper 限额重置：unset（默认）= 检查资格并在首次花费前询问；yes = 符合条件直接花、不再询问；no = 禁用阻塞恢复与到期抢救。Cedar 重置只用于其覆盖的限额，Juniper 只能恢复唯一的 5 小时封锁。适合多账号轮换薅满额度，关着最保守。",
+    "name": "Claude 限额重置自动兑换",
+    "desc": "自动消耗 Claude 订阅的 Cedar/Juniper 限额重置次数来解除用量封锁：unset（默认）= 符合条件时首次消耗前先问你；yes = 不问直接用；no = 禁用阻塞恢复和到期抢救。Cedar 重置只用于它覆盖的配额窗口，Juniper 只能解 5 小时封锁。多账号轮换榨干额度时有用，最保守就保持 unset。",
     "options": [
       "unset",
       "yes",
@@ -631,19 +631,19 @@
   },
   "claudeResets.keepCredits": {
     "name": "Claude 重置保留数",
-    "desc": "至少保留这么多个 Claude 重置不自动花费（默认 0，即最后一个也可自动花）；该保留同样适用于到期抢救。想始终手里留一张「救急票」就设 1–2。"
+    "desc": "自动兑换时至少保留这么多个 Claude 重置次数不动（默认 0，即最后一个也可以自动花掉）。该保留同样适用于到期抢救。想始终给自己留一张「救急票」就设 1–2。"
   },
   "claudeResets.minBlockedMinutes": {
-    "name": "Claude 最短封锁时长",
-    "desc": "只有当自然解锁时间（被耗尽的各覆盖窗口中最新者的结束点）距今至少该分钟数（默认 60）时才自动兑换重置——不为一段短暂等待浪费稀缺重置。仅含 5 小时的重置绝不会用于周限额或模型级封锁。"
+    "name": "Claude 最短封锁阈值",
+    "desc": "只有当自然解锁（被耗尽的各配额窗口中最晚的重置时刻）距今至少还有这么多分钟（默认 60）时才自动兑换重置——不为一段短暂等待浪费稀缺次数。只重置 5 小时窗口的次数绝不会用来解周限额或模型级封锁。"
   },
   "claudeResets.salvageHorizonHours": {
     "name": "Claude 到期抢救窗口",
-    "desc": "当服务器选定的 Cedar 重置将在该小时数内（默认 12）到期、且其覆盖窗口还有值得恢复的用量、且授权允许提前使用或有窗口已耗尽时，自动把它花掉以免浪费；0 = 禁用到期抢救。"
+    "desc": "当服务端选定的 Cedar 重置会在这个小时数内（默认 12）到期、且它覆盖的配额窗口还有值得恢复的用量、且授权允许提前用时，自动把它花掉以免浪费；0 = 禁用到期抢救。"
   },
   "codexResets.autoRedeem": {
-    "name": "Codex 重置自动兑换",
-    "desc": "自动花掉已存的 Codex 限额重置：当某回合卡死、且没有其他账号可接管时，恢复被耗尽 5 小时/周窗口封锁的账号，并抢救即将到期的积分。unset（默认）= 首次花费前询问；yes = 不再询问；no = 两种检查都禁用。",
+    "name": "Codex 限额重置自动兑换",
+    "desc": "自动消耗已保存的 Codex 速率限制重置额度：当某回合卡住、账号因 5 小时或每周窗口耗尽被封锁、且没有其他账号能接管时，恢复该账号；也会抢救即将过期的额度。unset（默认）= 首次消耗前询问；yes = 不问直接用；no = 两种功能都禁用。",
     "options": [
       "unset",
       "yes",
@@ -652,19 +652,19 @@
   },
   "codexResets.keepCredits": {
     "name": "Codex 重置保留数",
-    "desc": "已存重置低于该数量时不自动花费（默认 0 = 最后一张也可花）。即将到期的积分不受保留约束——留着也会过期，花掉才变现。"
+    "desc": "已保存的 Codex 重置额度低于这个数量时不再自动消耗（默认 0 = 最后一个也可花）。即将过期的额度不受此保留约束——留着也会作废，花掉才算兑现。"
   },
   "codexResets.minBlockedMinutes": {
-    "name": "Codex 最短封锁时长",
-    "desc": "只有自然解锁（被耗尽的 5h/周窗口中最新者）距今至少该分钟数（默认 60）才自动兑换——不为短暂等待花稀缺积分。调大（如 360）可忽略只有 5 小时的封锁，只处理周级封锁。"
+    "name": "Codex 最短封锁阈值",
+    "desc": "只有自然解锁（已耗尽的 5h/每周窗口中最晚的重置时刻）距今至少还有这么多分钟（默认 60）才自动兑换——不为短暂等待消耗稀缺额度。调大到 360 之类可以忽略只有 5 小时的封锁，只处理周级封锁。"
   },
   "codexResets.salvageHorizonHours": {
     "name": "Codex 到期抢救窗口",
-    "desc": "已存 Codex 重置将在该小时数内（默认 12）到期、且 5h 或周窗口有值得恢复的用量时，自动花掉以免浪费；0 = 禁用到期抢救。"
+    "desc": "已保存的 Codex 重置额度将在这个小时数内（默认 12）到期、且 5 小时或每周窗口有值得恢复的用量时，自动消耗它以免浪费；0 = 禁用到期抢救。"
   },
   "collab.autoStart": {
     "name": "协作自动开播",
-    "desc": "每个交互会话启动时自动经 collab.relayUrl 托管并发布到本地注册表（`omp collab list` 可见）：off（默认）= 仅运行 /collab 时才共享；view = 自动托管、注册表发放只读链接（`omp collab link --view`）；control = 自动托管并发放可控制的链接。房间随会话切换轮换。开启即默认广播你的会话，注意隐私。",
+    "desc": "每个交互式会话启动时，自动经 collab.relayUrl 托管并把会话发布到本地注册表（`omp collab list` 可见）：off（默认）= 只有手动跑 /collab 才共享；view = 自动托管并发放只读链接；control = 自动托管并发放可操作的链接。房间随会话切换轮换。注意开启即默认对外广播会话内容，隐私敏感者保持 off。",
     "options": [
       "off",
       "view",
@@ -673,27 +673,27 @@
   },
   "collab.displayName": {
     "name": "协作显示名",
-    "desc": "在 collab 协作中向其他参与者展示的名字，默认取操作系统用户名。多人协作房间里用于区分身份，按需设置即可。"
+    "desc": "collab 协作中向其他参与者展示的名字，默认取操作系统用户名。多人协作房间里用来区分身份，按需设置。"
   },
   "collab.relayUrl": {
     "name": "协作中继地址",
-    "desc": "/collab 使用的 relay 中继服务器，格式 wss://host[:port]，默认 wss://my.omp.sh。自建 relay 或使用私有中继时改成自己的地址；会话文本会经该服务器中转，敏感项目建议自建。"
+    "desc": "/collab 使用的 relay 中继服务器，格式 wss://host[:port]，默认 wss://my.omp.sh。会话内容会经这台服务器中转，敏感项目建议自建私有 relay 并在此改地址。"
   },
   "collab.webUrl": {
-    "name": "协作网页端地址",
-    "desc": "/collab 链接指向的浏览器端 UI 地址；留空（默认）时从 collab.relayUrl 推导；显式 http:// 地址只允许本机访问。一般无需修改。"
+    "name": "协作网页地址",
+    "desc": "/collab 分享链接指向的浏览器端 UI 地址；留空（默认）时从 collab.relayUrl 推导；显式填 http:// 只允许本机地址。一般用默认即可。"
   },
   "colorBlindMode": {
-    "name": "色盲友好模式",
-    "desc": "diff 新增行用蓝色代替绿色标记，便于红绿色觉障碍者区分增删行。默认 false。纯显示偏好，不影响任何行为。"
+    "name": "色盲友好配色",
+    "desc": "diff 新增行改用蓝色而不是绿色显示，方便红绿色觉障碍者区分增删行。默认 false。纯显示偏好，不影响任何行为。"
   },
   "commands.enableClaudeProject": {
-    "name": "加载项目 Claude 命令",
-    "desc": "从项目目录的 .claude/commands/ 加载斜杠命令（兼容 Claude Code 的项目级自定义命令）。默认 true。迁移自 Claude Code 的项目可直接复用已有命令库。"
+    "name": "项目 Claude 命令",
+    "desc": "从项目目录的 .claude/commands/ 加载斜杠命令（兼容 Claude Code 的项目级自定义命令）。默认 true。从 Claude Code 迁移过来的项目可以直接复用已有命令库。"
   },
   "commands.enableClaudeUser": {
-    "name": "加载用户 Claude 命令",
-    "desc": "从 ~/.claude/commands/ 加载斜杠命令（Claude Code 的用户级全局命令）。默认 false，避免与omp 自有命令混淆；Claude Code 重度用户可开启以复用个人命令集。"
+    "name": "用户 Claude 命令",
+    "desc": "从 ~/.claude/commands/ 加载斜杠命令（Claude Code 的用户级全局命令）。默认 false，避免和 omp 自有命令混淆；Claude Code 重度用户可开启复用个人命令集。"
   },
   "commands.enableOpencodeProject": {
     "name": "项目 OpenCode 命令",
@@ -701,122 +701,122 @@
   },
   "commands.enableOpencodeUser": {
     "name": "用户 OpenCode 命令",
-    "desc": "从 ~/.config/opencode/commands/ 加载斜杠命令（OpenCode 的用户级全局命令）。默认 false；OpenCode 用户可开启以复用个人命令。"
+    "desc": "从 ~/.config/opencode/commands/ 加载斜杠命令（OpenCode 的用户级全局命令）。默认 false；OpenCode 用户可开启复用个人命令。"
   },
   "commit.cacheEnabled": {
-    "name": "提交信息缓存",
+    "name": "提交信息生成缓存",
     "desc_en": "Caches LLM responses for /commit messages in local llm-cache storage; identical or similar diffs reuse the previous result, saving tokens and time. On by default.",
-    "desc": "缓存 /commit 生成提交信息的 LLM 响应（本地 llm-cache 存储）。相同/相似的 diff 直接复用上次结果，省 token 且更快。默认开启。"
+    "desc": "缓存 /commit 生成提交信息时的 LLM 响应（存到本地 llm-cache）。相同或相似的 diff 直接复用上次结果，省 token 也更快。默认开启。"
   },
   "commit.cacheTtlDays": {
     "name": "提交缓存有效期",
     "desc_en": "Retention days for the commit-message cache, default 14; expired entries are no longer reused. Shorten it when your diff style changes a lot, lengthen it for a higher hit rate.",
-    "desc": "提交信息缓存的保留天数，默认 14，过期条目不再复用。仓库 diff 风格变化大时可调短，追求命中率可调长。"
+    "desc": "提交信息缓存条目的保留天数，默认 14，过期不再复用。仓库 diff 风格变化大可以调短，追求命中率可以调长。"
   },
   "commit.changelogMaxDiffChars": {
-    "name": "changelog 上限",
+    "name": "changelog 输入上限",
     "desc_en": "Maximum diff characters fed to the model when generating a changelog, default 120000; very large release diffs are truncated so the call cannot explode; larger covers more changes with more cost and timeout risk.",
-    "desc": "生成 changelog 时喂给模型的 diff 最大字符数，默认 120000。超大发布 diff 会被截断以保证调用不爆；调大可覆盖更全的变更但增加费用与超时风险。"
+    "desc": "生成 changelog 时喂给模型的 diff 最大字符数，默认 120000。超大发布 diff 会被截断以保证调用不超窗口；调大覆盖面更全但费用和超时风险上升。"
   },
   "commit.mapBatchTokenBudget": {
-    "name": "map 分批预算",
+    "name": "map 分批 token 预算",
     "desc_en": "Token budget per batch in the map stage of map-reduce commit-message generation, default 16000; bigger batches mean fewer but pricier calls — tune the chunking of huge diffs together with mapReduceThreshold.",
-    "desc": "map-reduce 生成提交信息时，map 阶段每一批的 token 预算，默认 16000。批越大调用越少、单批越贵；配合 mapReduceThreshold 调节超大 diff 的分块粒度。"
+    "desc": "map-reduce 方式生成提交信息时，map 阶段每一批的 token 预算，默认 16000。批越大调用次数越少但单批越贵；配合 mapReduceThreshold 调节超大 diff 的分块粒度。"
   },
   "commit.mapReduceEnabled": {
-    "name": "map-reduce 生成",
+    "name": "map-reduce 分段生成",
     "desc_en": "For very large diffs, generate commit messages via map-reduce: summarize chunks in parallel first, then fold them into the final message, so one call never has to swallow the whole diff. On by default.",
-    "desc": "超大 diff 的提交信息改用 map-reduce 方式生成：先分块并行摘要，再汇总成最终 message，避免单次调用塞不下整个 diff。默认开启。"
+    "desc": "超大 diff 的提交信息改用 map-reduce 生成：先把 diff 分块并行摘要，再汇总成最终 message，避免一次调用塞不下整个 diff。默认开启。"
   },
   "commit.mapReduceThreshold": {
-    "name": "分块生成阈值",
+    "name": "分段生成阈值",
     "desc_en": "Map-reduce chunked generation kicks in only when the diff exceeds this size (default 5000); smaller diffs generate in a single call, which is simpler. Raise to keep more commits single-call, lower to chunk large diffs sooner.",
-    "desc": "diff 超过该大小（默认 5000）才启用 map-reduce 分块生成，小于该值直接单次生成更省事。调大让更多 commit 走单次调用，调小则大 diff 更早分块。"
+    "desc": "diff 的 token 估算值超过这个数（默认 5000）才启用 map-reduce 分段生成；小于该值直接单次生成，更省调用。调大让更多提交走单次调用，调小则大 diff 更早分段。"
   },
   "compaction.asyncEnabled": {
     "name": "后台预压缩",
-    "desc": "上下文接近压缩阈值时就在后台预先生成摘要，到达阈值时把现成结果拼接进来，显著缩短压缩时你可见的停顿。默认开启。关闭则压缩全部发生在阈值触发的那一刻，等待更久。"
+    "desc": "上下文接近压缩阈值时就在后台预先生成摘要，真正越过阈值时把现成结果拼接进来，显著缩短你可见的压缩停顿。默认开启。关闭则压缩全部发生在触发的那一刻，等待更久。"
   },
   "compaction.autoContinue": {
     "name": "压缩后自动继续",
     "desc_en": "Automatically continue the current work after post-turn threshold maintenance, without you sending another message. Default true; scripted or headless runs that want compaction-to-stop for external scheduling can set false.",
-    "desc": "回合后阈值维护完成后自动继续当前工作，不必你再发一条消息。默认 true。脚本化/无头运行若希望「压缩即停」以便外部调度，可设为 false。"
+    "desc": "回合间阈值压缩完成后自动继续当前工作，不用你再发一条消息。默认 true。脚本化或无人值守运行若希望「压缩完就停」便于外部调度，可设 false。"
   },
   "compaction.dropUseless": {
-    "name": "剔除无用输出",
-    "desc": "工具结果被消费后，若被标记为上下文无用（如零匹配的搜索、超时的等待），直接从上下文中剔除（缓存友好的方式）。默认开启，可腾出大量被垃圾输出占据的窗口空间。"
+    "name": "剔除无用工具输出",
+    "desc": "工具结果被用过后，若被判定对上下文无用（零匹配的搜索、超时的等待等），直接从上下文剔除——以不破坏提示缓存的方式。默认开启，能腾出大量被垃圾输出占据的窗口。"
   },
   "compaction.enabled": {
     "name": "自动上下文压缩",
-    "desc": "上下文过大时自动执行维护（先剔除陈旧文件读取/空搜索，再按 methodOrder 依次尝试压缩方法）。默认开启。关闭后仍可手动 /compact、/handoff、/shake；关闭期间上下文爆窗会直接报错。"
+    "desc": "上下文逼近模型窗口上限时自动执行压缩维护（先剔除陈旧的文件读取和空搜索，再按 methodOrder 依次尝试压缩方法）。默认开启。关闭后仍可手动 /compact、/handoff、/shake；但窗口塞满时会直接报错中断。"
   },
   "compaction.experimentalContextManagement": {
     "name": "实验性上下文管理",
-    "desc": "跨上下文窗口保留持久笔记（context notes）与可检索的原始历史，压缩/换窗后重要信息可通过笔记与历史找回而不是彻底丢失。官方标注实验性，默认 false（本机已改为 true）。"
+    "desc": "跨上下文窗口保留持久笔记（context notes）和可检索的原始历史：压缩或换窗后，重要信息可以通过笔记和历史找回而不是彻底丢失。官方标注实验性，默认 false（本机已改为 true）。"
   },
   "compaction.handoffSaveToDisk": {
     "name": "handoff 文档落盘",
-    "desc": "自动 handoff 流程生成的交接文档额外保存为 markdown 文件留档。默认 false。注意：它不会让手动 /handoff 也保存文件——手动命令本就不落盘。"
+    "desc": "自动 handoff 流程生成的交接文档额外保存为 markdown 文件留档。默认 false。注意它只管自动 handoff 流程，不影响手动 /handoff 命令。"
   },
   "compaction.idleEnabled": {
     "name": "空闲时压缩",
-    "desc": "会话空闲时也执行上下文维护：token 超过 idleThresholdTokens 且空闲满 idleTimeoutSeconds 秒即触发。默认 false（本机已改为 true）。开启可把压缩开销挪到你喝水的间隙，回来时上下文已瘦身。"
+    "desc": "会话空闲时也做上下文维护：token 数超过 idleThresholdTokens 且空闲满 idleTimeoutSeconds 秒就触发压缩。默认 false（本机已改为 true）。开启后压缩开销挪到你不在的间隙，回来时上下文已瘦身。"
   },
   "compaction.idleThresholdTokens": {
     "name": "空闲压缩 token 线",
-    "desc": "触发空闲压缩的最低上下文规模，默认 200000 token。低于此值的空闲会话不压缩，避免对小型会话做无谓维护。"
+    "desc": "触发空闲压缩的最低上下文规模，默认 200000 token。低于此值的空闲会话不压缩，避免对小会话做无谓维护。"
   },
   "compaction.idleTimeoutSeconds": {
     "name": "空闲等待秒数",
-    "desc": "空闲多少秒后才考虑执行空闲压缩，默认 300（5 分钟）。与 idleThresholdTokens 联合生效；调小压缩更勤但可能在短暂思考间隙触发。"
+    "desc": "会话空闲多少秒后才考虑执行空闲压缩，默认 300（5 分钟）。与 idleThresholdTokens 联合生效；调小压缩更勤，但可能在你短暂思考间隙就触发。"
   },
   "compaction.keepRecentTokens": {
-    "name": "近期保留 token 量",
+    "name": "近期原样保留量",
     "desc_en": "Target size of recent conversation kept verbatim (not summarized) after summary-style compaction, default 20000 tokens; larger keeps more recent detail for smaller compaction gain, smaller recycles the window more aggressively.",
-    "desc": "摘要型压缩完成后，逐字保留（不进摘要）的近期对话目标规模，默认 20000 token。调大保留更多近期细节、压缩收益变小；调小则更激进的窗口回收。"
+    "desc": "摘要型压缩完成后，逐字保留（不进摘要）的近期对话目标规模，默认 20000 token。调大保留更多近期细节、压缩收益变小；调小则窗口回收更激进、丢的细节更多。"
   },
   "compaction.methodOrder": {
-    "name": "压缩方法顺序",
-    "desc": "自动上下文维护的方法回退顺序，默认 [remote, snapcompact, handoff, shake, soft]：remote=提供商原生服务端压缩（需路由支持）；snapcompact=把旧历史归档成稠密图像（需视觉模型）；handoff=结构化交接摘要；shake=不调模型、只剔除可恢复的大块输出；soft=传统模型摘要。某方法不可用或失败自动顺延下一个。"
+    "name": "压缩方法回退顺序",
+    "desc": "自动上下文维护依次尝试的压缩方法，默认 [remote, snapcompact, handoff, shake, soft]：remote=提供商服务端原生压缩；snapcompact=把旧历史渲染成高密度图像（需视觉模型）；handoff=结构化交接摘要；shake=不调模型、只剔除可恢复的大块输出；soft=传统模型摘要。某方法不可用或失败自动顺延下一个。"
   },
   "compaction.midTurnEnabled": {
-    "name": "回合中压缩",
-    "desc": "允许在一个长回合内部的工具循环安全边界（下一次提供商请求前）检查压缩阈值，避免超长回合中途爆窗。默认开启。子代理总是检查，因为其整个任务就是一个回合。"
+    "name": "回合中压缩检查",
+    "desc": "允许在一个长回合内部的工具循环安全边界（下一次模型请求发出前）检查压缩阈值，避免超长回合中途爆窗。默认开启。对子代理无效——子代理整个任务就是一个回合，总是检查。"
   },
   "compaction.remoteEndpoint": {
     "name": "远程压缩端点",
     "desc_en": "Custom OpenAI-compatible remote compaction endpoint; unset by default = the current route's built-in remote compaction. Most users should keep it unset; configure only to use a separate or cheaper summarization server.",
-    "desc": "自定义 OpenAI 兼容的远程压缩服务端点。默认未设置，即用当前路由自带的 remote 压缩能力。多数用户应保持未设；只有想用独立/更便宜的服务器做摘要时才配置。"
+    "desc": "自定义 OpenAI 兼容的远程压缩服务端点。默认未设置，即用当前路由自带的 remote 压缩能力。想用独立的、更便宜的摘要服务时才需要配置，多数用户保持未设。"
   },
   "compaction.remoteStreamingV2Enabled": {
     "name": "流式远程压缩",
-    "desc": "对兼容的远程压缩模型使用流式（streaming）压缩协议，边流边攒、减少等待。默认开启；不兼容的路由自动回退非流式。"
+    "desc": "对兼容的远程压缩模型使用 Responses 流式压缩协议，边流边攒减少等待。默认开启；不兼容的路由自动回退非流式。"
   },
   "compaction.reserveTokens": {
     "name": "压缩保留额度",
     "desc_en": "Reserve margin used by reserve-based threshold judgment. Unset by default: automatically the larger of 16384 tokens and 15% of the model window (small windows fall back to proportional retention). Only meaningful when neither thresholdPercent nor thresholdTokens is enabled.",
-    "desc": "基于保留额度（reserve）的阈值判定所用的余量。默认未设置：自动取「16384 token 与模型窗口 15%」中的较大者（小窗口退回按比例保留）。仅当 thresholdPercent/thresholdTokens 都未启用百分比/固定阈值时才有意义。"
+    "desc": "基于保留额度（reserve）的阈值判定所用的余量 token 数。默认未设置：自动取「16384 token 与模型窗口 15%」中的较大者（窗口太小时退回按 15% 保留）。只在 thresholdPercent/thresholdTokens 都没启用自定义阈值时才有意义。"
   },
   "compaction.supersedeReads": {
     "name": "淘汰重复文件读取",
-    "desc": "同一文件被再次读取时，把旧一份的读取结果从上下文中剔除（缓存感知，每回合运行）。默认开启，显著减少反复读文件造成的上下文膨胀。"
+    "desc": "同一文件被再次读取时，把旧的那份读取结果从上下文中剔除（每回合运行、缓存感知）。默认开启，显著减少反复读文件造成的上下文膨胀。"
   },
   "compaction.thresholdPercent": {
     "name": "压缩百分比阈值",
-    "desc": "按模型窗口百分比触发上下文维护；大于 0 时生效并被钳制在 1–99。-1（默认）= 不用百分比，退回基于保留额度（reserve）的自动判定。想让长会话更早/更晚压缩时调小/调大。"
+    "desc": "按模型窗口的百分比触发上下文维护；大于 0 生效并被钳制在 1–99。-1（默认）= 不用百分比，回到基于保留额度的自动判定。想让长会话更早压缩就调小，更晚压缩就调大。"
   },
   "compaction.thresholdTokens": {
     "name": "压缩固定 token 阈值",
-    "desc": "固定的上下文 token 触发线；大于 0 时生效且优先于 thresholdPercent。-1（默认）= 不启用固定线。想在特定窗口大小精确控制压缩点时使用。"
+    "desc": "固定的上下文 token 触发线；大于 0 生效且优先于 thresholdPercent，并被钳制在窗口大小以下。-1（默认）= 不启用固定线。想在特定窗口大小精确控制压缩点时使用。"
   },
   "compaction.v2RetainedMessageBudget": {
     "name": "流式压缩保留预算",
     "desc_en": "Token budget cap for recent messages retained by streaming remote compaction (v2), default 64000; larger keeps more recent context at higher post-compaction window usage.",
-    "desc": "流式远程压缩（v2）保留的近期消息 token 预算上限，默认 64000。控制压缩后「原样保留的近期消息」规模，调大保留更多近况、压缩后窗口占用更高。"
+    "desc": "流式远程压缩（v2）中原样保留的近期消息 token 预算上限，默认 64000。调大保留更多近况、压缩后占用更高；调小更省窗口但近况细节更少。"
   },
   "completion.notify": {
-    "name": "完成系统通知",
-    "desc": "agent 完成一个回合时发送系统通知（on/off，默认 on）。跑长任务时切走干别的，回合结束有提醒；嫌吵可关。",
+    "name": "回合完成系统通知",
+    "desc": "agent 完成一个回合时发送操作系统通知：on（默认）= 发通知；off = 不发。跑长任务时切去干别的也能被提醒回来；嫌吵可关。",
     "options": [
       "on",
       "off"
@@ -824,48 +824,48 @@
   },
   "composer.recallClearedDrafts": {
     "name": "找回已清空草稿",
-    "desc": "用 Ctrl+C 清空的输入草稿仍保留在本地 ↑/↓ 历史中直到会话退出，误清可翻回。默认 true。关闭只影响之后的清除操作，已存的历史不受影响。"
+    "desc": "用 Ctrl+C 清空的输入草稿仍保留在本地 ↑/↓ 历史里直到会话退出，误清可以翻回来。默认 true。关闭只影响之后的清除操作，已在历史里的不受影响。"
   },
   "composer.shape": {
-    "name": "输入区布局",
-    "desc": "输入编辑器与状态行的视觉布局样式，默认 band（横带式）。纯外观设置，按个人喜好选择；不同 shape 影响输入框与状态信息在底部的排布形态。"
+    "name": "输入区布局样式",
+    "desc": "输入编辑器和状态行的视觉布局，默认 band（横带式）。纯外观设置，按喜好选择；不同样式影响输入框和状态信息在底部的排布形态。"
   },
   "composer.tokenRate": {
     "name": "实时生成速率显示",
-    "desc": "在工作行、会话标题旁实时显示当前生成的 tok/s 读数：由流式增量估算，消息完成时按提供商的计费输出数校正。默认 false（本机已改为 true）。观察模型速度/代理质量时有用。"
+    "desc": "在工作状态行、会话标题旁实时显示当前生成速率（tok/s）：按流式增量估算，每条消息完成时按提供商计费的输出 token 数校正。默认 false（本机已改为 true）。观察模型速度或代理质量时有用。"
   },
   "computer.display": {
     "name": "桌面截图显示器",
-    "desc": "桌面自动化截图的显示器选择：all（默认）= 拼接所有显示器成一张大图；也可填原生 display id 只截某块屏。多显示器用户可指定单屏减少图像尺寸与 token 消耗。"
+    "desc": "桌面自动化截图选哪块屏：all（默认）= 把所有显示器拼成一张大图；也可填原生显示器 ID 只截某一块。多屏用户指定单屏可减小图像体积和 token 消耗。注意部分传输渠道会把有效尺寸压到 1280×896。"
   },
   "computer.enabled": {
     "name": "桌面自动化工具",
-    "desc": "启用可脚本化的宿主桌面 eval prelude：截屏、鼠标键盘输入、无障碍树读取。默认 false。开启后模型能直接操作你的电脑桌面，能力强大但风险高（误点击、隐私截屏），仅在受控环境开启。"
+    "desc": "启用可脚本化的宿主桌面 eval 预置接口：截屏、键鼠输入、读取无障碍树，让模型直接操作你的电脑桌面（可按窗口隔离目标）。默认 false。能力强大但风险高（误点击、隐私截屏），开启前请配置 tools.approvalMode 或 tools.approval.computer 的审批策略并授予系统权限。/computer 命令只对当前会话临时开关。"
   },
   "computer.maxHeight": {
     "name": "桌面截图最大高",
-    "desc": "拼接桌面截图的最大高度（像素），默认 2400。超出会缩放，控制图像尺寸以适配模型视觉输入限制与 token 成本。"
+    "desc": "拼接桌面截图的最大高度（像素），默认 2400，超出会缩放。和 maxWidth 一起控制图像尺寸，以适配模型视觉输入限制和 token 成本。"
   },
   "computer.maxWidth": {
     "name": "桌面截图最大宽",
-    "desc": "拼接桌面截图的最大宽度（像素），默认 3840。与 computer.maxHeight 配合限定桌面截图的分辨率上限。"
+    "desc": "拼接桌面截图的最大宽度（像素），默认 3840，超出会缩放。与 computer.maxHeight 配合限定桌面截图分辨率上限，控制图像 token 成本。"
   },
   "contextPromotion.enabled": {
     "name": "溢出升级大窗模型",
-    "desc": "上下文溢出时自动升级（promote）到更大上下文窗口的模型继续会话，而不是执行压缩。默认 false。开启可避免压缩造成的信息损失，但大窗模型通常更贵（可能触发高级计价）。"
+    "desc": "上下文溢出时，把会话升级（promote）到当前模型声明的 contextPromotionTarget 指定的更大窗口模型继续，而不是做压缩。默认 false。开启能避免压缩丢信息，但大窗模型通常更贵；只对在模型目录里声明了升级目标的模型生效。"
   },
   "cycleOrder": {
-    "name": "模型循环顺序",
+    "name": "模型切换循环顺序",
     "desc_en": "Order for quickly cycling models in the TUI, default [\"smol\", \"default\", \"slow\"], elements being model role names bound to those roles. Replaced wholesale: project-level config overrides the whole global array.",
-    "desc": "在 TUI 中快速循环切换模型的顺序，默认 [\"smol\", \"default\", \"slow\"]，元素为模型角色名（对应 smol/default/slow 三个角色绑定）。数组替换语义：项目层配置会整体覆盖全局数组。"
+    "desc": "TUI 里快速循环切换模型时按什么顺序轮转，默认 [\"smol\", \"default\", \"slow\"]，元素是模型角色名。注意数组是整体替换语义：项目级配置会整个覆盖全局数组，不是追加。"
   },
   "debug.enabled": {
-    "name": "DAP 调试工具",
-    "desc": "启用 debug 工具：通过 DAP（调试适配器协议）对运行中的进程下断点、单步、查变量，让模型能像人一样用调试器排错。默认开启。"
+    "name": "DAP 调试器工具",
+    "desc": "启用 debug 工具：通过 DAP（Debug Adapter Protocol，调试适配器协议）对运行中的进程下断点、单步、查变量，让模型像人一样用调试器排错。默认开启。"
   },
   "defaultThinkingLevel": {
     "name": "默认思考深度",
-    "desc": "支持思考的模型的默认推理深度：minimal/low/medium/high/xhigh/max 由浅到深，档位越高推理越细但更慢更贵；auto（本机值）= 交由系统按问题难度自动选档。官方默认 high。仅对具备思考能力的模型生效。",
+    "desc": "支持思考的模型的默认推理深度：minimal/low/medium/high/xhigh/max 由浅到深，档位越高推理越细但越慢越贵；auto = 让系统按问题难度自动选档。官方默认 high（本机为 auto）。仅对具备思考能力的模型生效，单次运行可用 --thinking 覆盖。",
     "options": [
       "minimal",
       "low",
@@ -877,13 +877,13 @@
     ]
   },
   "dev.autoqa": {
-    "name": "自动问题上报",
-    "desc": "工具异常时自动向官方上报问题（xd://report_issue）。默认开启，但首次上报前会征求同意，拒绝即停用直至显式重新开启。涉及隐私：上报内容为工具问题信息，介意者可关。"
+    "name": "工具问题自动上报",
+    "desc": "工具出现异常时自动向官方上报问题报告。默认开启，但首次上报前会征求同意，拒绝后即停用直到你显式重新开启。涉及隐私：上报内容是工具问题信息，介意者可关。PI_AUTO_QA 环境变量可覆盖。"
   },
   "dev.autoqaConsent": {
     "name": "上报同意状态",
     "desc_en": "Consent record for automatic issue reporting (dev.autoqa): unset = not asked yet; granted = consented; denied = refused. Default unset (this machine shows denied, i.e. refused). Usually written automatically by the first prompt — no need to edit by hand.",
-    "desc": "自动问题上报（dev.autoqa）的同意记录：unset = 尚未询问；granted = 已同意上报；denied = 已拒绝。默认 unset（本机显示 denied，即拒绝过）。此值通常由首次询问自动写入，无需手改。",
+    "desc": "自动问题上报（dev.autoqa）的同意记录：unset = 还没问过；granted = 已同意；denied = 已拒绝。这个值通常由首次询问时自动写入，一般不用手动改。",
     "options": [
       "unset",
       "granted",
@@ -892,38 +892,38 @@
   },
   "dev.autoqaPush.endpoint": {
     "name": "上报接收端点",
-    "desc": "Auto QA JSON 报告的接收 URL，默认 https://qa.omp.sh/v1/grievances。自建收集服务器时改成自己的地址，配合 dev.autoqaPush.token 鉴权。"
+    "desc": "自动 QA 报告（JSON）的接收 URL，默认 https://qa.omp.sh/v1/grievances。自建收集服务器时改成自己的地址，配合 dev.autoqaPush.token 鉴权。"
   },
   "dev.autoqaPush.token": {
-    "name": "上报凭证",
+    "name": "上报凭证令牌",
     "desc_en": "Auth token for the receiver at dev.autoqaPush.endpoint; credential-type setting, redacted in `omp config list` output. Only needed for self-hosted/private reporting endpoints, unset by default.",
-    "desc": "dev.autoqaPush.endpoint 接收端的鉴权令牌。属于凭据类设置（credential），`omp config list` 输出中脱敏。仅自建/私有上报服务需要，默认未设置。"
+    "desc": "dev.autoqaPush.endpoint 接收端的鉴权令牌，属凭据类设置，列表输出会脱敏。只有自建/私有上报服务才需要，默认未设置。"
   },
   "disabledExtensions": {
     "name": "禁用扩展列表",
     "desc_en": "Array of disabled extension names, empty by default; listed extensions are not loaded (their MCP servers, tools and context injections all go away) — easier than deleting entries from the extensions array for a temporary pause.",
-    "desc": "被禁用的扩展名称数组，默认空。列出的扩展不加载（其提供的 MCP 服务器、工具与上下文注入全部失效），不必从 extensions 数组里删除条目，临时停用更方便。"
+    "desc": "被禁用的扩展名称数组，默认空。列出的扩展不加载——它提供的 MCP 服务器、工具和上下文注入全部失效——而不必从 extensions 数组里删条目，临时停用更方便。"
   },
   "disabledProviders": {
-    "name": "禁用提供商列表",
+    "name": "禁用提供商/发现源",
     "desc_en": "Array of disabled model provider ids, empty by default; listed providers and their models are excluded during discovery and never appear in the model list, e.g. [\"ollama\", \"openrouter\"]. Note the array is replaced wholesale: project-level config overrides rather than merges the global array.",
-    "desc": "被禁用的模型提供商 id 数组，默认空；其中的 provider 及其模型在发现阶段被整体排除，不再出现在模型列表。例：[\"ollama\", \"openrouter\"]。注意数组为整体替换语义：项目层配置会覆盖而非合并全局数组。"
+    "desc": "按 id 禁用的名单，默认空；它同时管两类东西：模型提供商（如 anthropic、openai，禁用后其模型从选择器消失）和外部配置发现源（如 claude、codex、cursor，禁用后不再读它们的命令/技能/MCP 配置）。注意数组是整体替换：项目层设置会整个覆盖全局列表，写项目配置时要列全。"
   },
   "display.cacheMissMarker": {
     "name": "缓存未命中标记",
-    "desc": "当某个助手回合的请求未命中（miss）提示缓存时，在该回合后显示一条分隔线标记。默认 false。排查「为什么这段 token 全价计费」时打开很有用；日常可关。"
+    "desc": "某个助手回合的请求没命中提示词缓存时，在该回合后显示一条分隔线标记。默认 false。排查「为什么这段 token 按全价计费」时打开很有用，日常可关。"
   },
   "display.collapseCompacted": {
     "name": "折叠压缩前历史",
-    "desc": "实时转录中把压缩点之前的历史折叠到摘要分隔线后面，默认 false（本机已改为 false 保持完整显示，官方文档默认值为 true）。关闭则完整转录内联显示、每个压缩点仅以分隔线标示。"
+    "desc": "实时对话记录里，把压缩点之前的历史折叠到摘要分隔线后面，保持界面干净。官方默认 true（本机改为 false 即完整显示）；关闭后每个压缩点只显示一条分隔线，历史全部内联展开。"
   },
   "display.hideToolActivity": {
-    "name": "隐藏工具调用显示",
-    "desc": "隐藏模型发起的工具调用与结果，不在转录中显示。默认 false（本机已改为 true）。开启后终端只显示助手正文，界面清爽但失去过程可见性——排查工具行为时建议临时关掉。"
+    "name": "隐藏工具调用过程",
+    "desc": "在对话记录里隐藏模型发起的工具调用及其结果，只显示助手正文。默认 false（本机已改为 true）。界面更清爽，但失去过程可见性——排查工具行为时建议临时关掉。"
   },
   "display.pinnedAgents": {
-    "name": "置顶代理列表",
-    "desc": "编辑器上方置顶的存活代理（subagent）跳转列表：off = 隐藏；collapsed（默认）= 显示几行并提供展开箭头；full = 列出全部。并行跑多个子代理时便于快速跳转查看。",
+    "name": "置顶子代理列表",
+    "desc": "编辑器上方置顶显示存活子代理的跳转列表：off = 隐藏；collapsed（默认）= 显示少量行并提供展开控件；full = 列出全部。并行跑多个子代理时便于快速跳转查看各自进展。",
     "options": [
       "off",
       "collapsed",
@@ -932,7 +932,7 @@
   },
   "display.shimmer": {
     "name": "加载动画样式",
-    "desc": "工作/加载消息的动画风格：classic（默认）= 文字上扫过的柔和余弦波；kitt = 《霹雳游侠》式左右往返的红灯扫描；disabled = 无动画的静态灰字。纯外观偏好，老终端/录屏可关。",
+    "desc": "工作中/加载中消息的动画风格：classic（默认）= 文字上扫过的柔和波；kitt = 左右往返的扫描灯；disabled = 无动画静态灰字。纯外观偏好，老终端或录屏可关。",
     "options": [
       "classic",
       "kitt",
@@ -941,23 +941,23 @@
   },
   "display.showTokenUsage": {
     "name": "显示回合 token 用量",
-    "desc": "在助手消息上显示该回合的 token 用量明细。默认 false（本机已改为 true）。关注费用与上下文消耗时开启，可直观看到每回合花销。"
+    "desc": "在助手消息上显示该回合的 token 用量明细。默认 false（本机已改为 true）。关心费用和上下文消耗时开启，可直观看到每回合花销。"
   },
   "display.showTurnTime": {
     "name": "显示回合耗时",
-    "desc": "在助手消息的用量行显示从提示到产出（含工具调用）的总耗时。默认 false。评估模型+工具链速度时开启。"
+    "desc": "在助手消息的用量行里显示从提示提交到交还控制权的总耗时（包含工具调用）。默认 false。评估模型加工具链的速度时开启。"
   },
   "display.smoothStreaming": {
     "name": "平滑流式渲染",
-    "desc": "助手文本与流式工具输入在数据块到达时平滑渐进显示，而不是生硬整块刷新。默认开启。纯渲染体验设置，关掉可略微降低终端渲染负担。"
+    "desc": "助手文本和流式工具输入随数据块到达平滑渐进显示，而不是生硬地整块刷新。默认开启。纯渲染体验设置，关掉可略微降低终端渲染负担。"
   },
   "display.subagentLivePreview": {
     "name": "子代理实时预览",
-    "desc": "在每个置顶子代理行下方实时显示其当前（或最近一次）工具调用。默认 false。并行子代理较多想围观各自进展时开启；会增加屏幕信息量。"
+    "desc": "在每个置顶子代理行下方实时展示它当前（或最近一次）的工具调用。默认 false。并行子代理多、想围观各自进展时开启；代价是屏幕信息量变多。"
   },
   "doubleEscapeAction": {
     "name": "双击 Esc 行为",
-    "desc": "编辑器为空时连按两次 Esc 键的动作：rewind（默认）= 打开转录回溯选择器（回到某个历史节点重试）；tree = 打开会话树；none = 不做任何事。高频回溯用户保持 rewind 最顺手。",
+    "desc": "编辑器为空时连按两次 Esc 的动作：rewind（默认）= 打开转录回溯选择器，回到某个历史节点重试；tree = 打开会话树；none = 什么都不做。高频回溯用户保持 rewind 最顺手。",
     "options": [
       "rewind",
       "tree",
@@ -965,32 +965,32 @@
     ]
   },
   "edit.autoRepair.enabled": {
-    "name": "编辑 AST 自修复",
-    "desc": "某次编辑把文件的 AST 解析搞坏时，自动请 smol 模型修复损坏区域，并用重新解析验证修复结果（失败则退回普通警告）。默认 false（本机已改为 true）。开启能显著减少「改崩语法文件」的事故，代价是偶尔多一次小模型调用。"
+    "name": "编辑破坏自动修复",
+    "desc": "某次编辑把文件的 AST 解析搞坏（语法被破坏）时，自动请求 smol 角色的小模型修复受损区域，并用重新解析验证修复是否成功（失败则退回普通警告）。默认 false（本机已改为 true）。能显著减少「改崩语法」的事故，代价是偶尔多一次小模型调用。"
   },
   "edit.blackbox.enabled": {
-    "name": "编辑黑盒上下文",
-    "desc": "当一次编辑引入 AST 解析失败时，向修复调用附加完整的修改前后源码作为「黑盒」上下文，让修复模型看得更全。默认 false。与 edit.autoRepair.enabled 配合提升修复成功率，token 开销更大。"
+    "name": "修复附加完整源码",
+    "desc": "编辑导致 AST 解析失败时，给修复调用额外附上修改前后的完整源码作为上下文，让修复模型看得更全。默认 false。与 edit.autoRepair.enabled 配合能提高修复成功率，代价是 token 开销更大。"
   },
   "edit.blockAutoGenerated": {
     "name": "禁改自动生成文件",
-    "desc": "拒绝编辑疑似自动生成的文件（protoc、sqlc、swagger 等生成物）——这类文件改动会在下次生成时被覆盖，正确做法是改源头定义。默认开启；确需手改生成物时需显式绕过。"
+    "desc": "拒绝编辑疑似自动生成的文件（protoc、sqlc、swagger 等工具的生成物）——这类文件改了也会在下次生成时被覆盖，正确做法是改源头定义再重新生成。默认开启；确需手改生成物时需显式绕过。"
   },
   "edit.enforceSeenLines": {
     "name": "强制先读后改",
-    "desc": "拒绝锚定在「此前的读取/搜索从未完整展示过」的行上的编辑，防止模型凭想象修改没看过的代码。默认开启。偶尔会造成「先读一下再改」的额外往返，但显著降低瞎改风险。"
+    "desc": "拒绝锚定在「此前的读取/搜索从未完整展示过」的行上的编辑，防止模型凭想象去改没看过的代码。默认开启。偶尔会多一次「先读一下」的往返，但显著降低瞎改风险。"
   },
   "edit.fuzzyMatch": {
-    "name": "模糊匹配编辑",
-    "desc": "允许编辑锚点接受高置信度的模糊匹配（主要是空白差异：缩进、行尾空格等）。默认开启，模型提供的锚点因空白细节不完全一致时仍能成功替换。"
+    "name": "模糊匹配锚点",
+    "desc": "允许编辑锚点接受高置信度的模糊匹配（主要是缩进、行尾空格等空白差异）。默认开启，模型给的锚点和文件略有出入时仍能成功替换。PI_EDIT_FUZZY 环境变量可覆盖。"
   },
   "edit.fuzzyThreshold": {
     "name": "模糊匹配阈值",
-    "desc": "接受模糊匹配的相似度阈值，范围 0–1，默认 0.95。调高更严格（空白差异稍大就失败），调低更宽松（但也更容易改错位置）。仅 fuzzyMatch 开启时生效。"
+    "desc": "接受模糊匹配所需的相似度阈值，0–1，默认 0.95。调高更严格（空白差异稍大就失败），调低更宽松但也更容易改错位置。仅 edit.fuzzyMatch 开启时生效；PI_EDIT_FUZZY_THRESHOLD 可覆盖。"
   },
   "edit.mode": {
     "name": "编辑工具变体",
-    "desc": "选择 edit 工具的实现变体：hashline（默认）= 以内容哈希行锚定位的编辑；patch / apply_patch = 补丁式编辑；replace = 经典整段替换；sloppy = 更宽松的匹配替换。变体决定编辑载荷的格式与定位方式；环境变量 PI_EDIT_VARIANT 可覆盖。",
+    "desc": "选择 edit 工具的实现变体：hashline（默认）= 用内容哈希行锚定位；patch / apply_patch = 补丁式编辑；replace = 经典整段替换；sloppy = 更宽松的匹配替换。变体决定编辑载荷的格式和定位方式；PI_EDIT_VARIANT 环境变量可覆盖。",
     "options": [
       "apply_patch",
       "hashline",
@@ -1000,97 +1000,97 @@
     ]
   },
   "edit.modelVariants": {
-    "name": "按文件覆盖编辑变体",
+    "name": "按模型覆盖编辑变体",
     "desc_en": "Mapping from filename patterns to edit.mode variants (key = file pattern, value = one of the edit.mode variants), empty by default — e.g. a laxer variant just for generated JSON files. Leave empty for normal use.",
-    "desc": "按文件名模式为不同文件使用不同 edit.mode 变体的映射表（键=文件模式，值=edit.mode 的某个变体），默认空。例如给生成类 JSON 文件单独指定宽松变体。普通用户留空即可。"
+    "desc": "按「模型选择器子串 → 编辑变体」的映射（有序、不区分大小写，第一条命中的生效），让不同模型用不同的 edit.mode——比如对某个总在 hashline 上出错的小模型强制换成 patch。默认空表，所有模型用同一变体。"
   },
   "edit.recoverInlineEdits": {
     "name": "内联编辑恢复",
-    "desc": "模型有时不调用 edit 工具、而是把编辑载荷当纯文本输出；开启后 omp 会识别这类输出并转换成真正的 edit 工具调用执行。默认开启，拯救忘带工具调用的编辑，减少「改了但没生效」的假动作。"
+    "desc": "模型有时不调用 edit 工具、而把编辑载荷当纯文本输出；开启后 omp 会识别这类文本并转换成真正的 edit 调用执行。默认开启，能挽救「说了要改但没生效」的假动作。"
   },
   "edit.streamingAbort": {
     "name": "补丁预览失败即中止",
-    "desc": "流式接收的编辑载荷在补丁预览失败时立即中止该调用，而不是等收完再报错。默认 false。开启可更快失败、省一点流量；代价是部分可自动修复的载荷失去补救机会。"
+    "desc": "流式接收的编辑载荷在补丁预览阶段就失败时，立即中止这次调用，而不是等收完再报错。默认 false。开启能更快失败省一点流量，代价是部分本可自动修复的载荷失去补救机会。"
   },
   "emojiAutocomplete": {
-    "name": "emoji 补全",
-    "desc": "输入 :name: 短代码时提示对应 emoji，并把 :D、:-) 之类的文字表情自动展开。默认开启。纯输入体验设置，不喜欢自动替换表情的可关。"
+    "name": "emoji 输入补全",
+    "desc": "输入 :name: 短代码时提示对应 emoji，并把 :D、:-) 这类文字表情自动展开成 emoji。默认开启。纯输入体验，不喜欢自动替换的可关。"
   },
   "enabledModels": {
-    "name": "模型白名单",
+    "name": "可用模型白名单",
     "desc_en": "Whitelist of allowed model ids, empty by default = no filtering, all models usable; when set, only the listed models appear in the model picker, combinable with disabledProviders to narrow the catalog. The array is replaced wholesale and supports per-path (project) overrides.",
-    "desc": "允许使用的模型 id 数组，默认空 = 不做白名单过滤、全部可用。设置后只有列出的模型出现在模型选择器；与 disabledProviders 配合可精细收窄可用模型面。数组为整体替换语义，且支持按路径（项目）覆盖。"
+    "desc": "允许出现在模型选择器里的模型 id 数组；默认空 = 不做过滤、全部可用。填写后只有列出的模型可选，支持 provider/* 通配和按目录生效的 path 作用域条目。注意数组是整体替换语义：项目层配置会覆盖而非追加全局列表。"
   },
   "enabledProviders": {
-    "name": "提供商白名单",
+    "name": "外部配置发现源白名单",
     "desc_en": "Whitelist of allowed provider ids, empty by default = all usable; when set, only whitelisted providers are discovered and loaded, handy to hide misconfigured providers and reduce noise. Supports per-path overrides; the array is replaced wholesale.",
-    "desc": "允许使用的提供商 id 数组，默认空 = 全部可用。设置后仅白名单内 provider 会被发现与加载，适合屏蔽未配置好的 provider 减少噪音；同样支持按路径覆盖，数组整体替换。"
+    "desc": "允许加载的「外部用户级配置来源」id 数组，默认空 = 一律不加载。列出后 omp 才会从 Cursor、Codex、Claude、Gemini、OpenCode 等工具的用户目录发现命令、技能、MCP 配置等（填 claude 会连带启用 claude-plugins；填 * 或 all 全放）。它管的是配置发现，不是模型本身；disabledProviders 优先于它。"
   },
   "error.notify": {
     "name": "出错系统通知",
-    "desc": "agent 因错误停止时发送系统通知（on/off，官方默认 off，本机已改为 on）。无人值守跑批时开启可第一时间知道失败；交互使用嫌吵可关。",
+    "desc": "agent 因错误停止时发送系统通知：on = 发；off（官方默认）= 不发。无人值守跑批时建议开启，第一时间知道失败；交互使用嫌吵可关。",
     "options": [
       "on",
       "off"
     ]
   },
   "eval.autoBackground.enabled": {
-    "name": "eval 单元自动后台",
-    "desc": "运行时间过长的 eval 计算单元自动转入后台、结果完成后异步送达。默认 false（bash 的同名机制默认开）。长训练/长脚本跑在 eval 里时可开启。"
+    "name": "eval 单元自动转后台",
+    "desc": "运行时间过长的 eval 计算单元自动转入后台，结果完成后异步送达。默认 false（bash 的同名机制默认开）。在 eval 里跑长训练、长脚本时可开启。"
   },
   "eval.autoBackground.thresholdMs": {
     "name": "eval 转后台阈值",
     "desc_en": "An eval cell running longer than this many milliseconds (default 60000 = 60 seconds) moves to background automatically; only effective when eval.autoBackground.enabled is on.",
-    "desc": "eval 单元运行超过该毫秒数（默认 60000，即 60 秒）自动转后台。仅 eval.autoBackground.enabled 开启时生效。"
+    "desc": "eval 单元运行超过这个毫秒数（默认 60000，即 60 秒）自动转后台。仅 eval.autoBackground.enabled 开启时生效。"
   },
   "eval.autoProvision": {
     "name": "eval 环境自动配置",
-    "desc": "首次使用时自动创建托管式的 JavaScript eval 包环境（安装依赖、建目录）。默认开启。关掉则首次跑 JS 单元前需要手动准备环境，一般保持开启。"
+    "desc": "首次执行 %bun add 时自动创建托管式的 JavaScript eval 包环境（装依赖、建目录）。默认开启。关掉则首次跑 JS 单元前要手动准备环境，一般保持开启。"
   },
   "eval.js": {
     "name": "JS eval 内核",
-    "desc": "允许 eval 工具把 JavaScript 单元派发到进程内运行时执行。默认开启。不用 JS 的用户可关，减少暴露面。"
+    "desc": "允许 eval 工具把 JavaScript 单元发送到进程内 Bun 运行时执行。默认开启。不用 JS 的用户可关以减少暴露面；PI_JS=0 可临时禁用。"
   },
   "eval.py": {
     "name": "Python eval 内核",
-    "desc": "允许 eval 工具把 Python 单元派发到 IPython 内核执行（数据分析、临时脚本的主力通道）。默认开启。"
+    "desc": "允许 eval 工具把 Python 单元发送到 IPython 内核执行——数据分析、临时脚本的主力通道。默认开启；PI_PY=0 可临时禁用。"
   },
   "eval.tools.enabled": {
     "name": "eval 自定义工具",
-    "desc": "允许 eval 单元定义自定义工具（Python 里 @tool 装饰器、JS 里 tool(fn)），供 task、agent()、workpool() 派生的子代理调用。默认开启，是把「一次性小能力」临时挂给子代理的机制。"
+    "desc": "允许 eval 单元定义自定义工具（Python 里用 @tool 装饰器、JS 里用 tool(fn)），供 task、agent()、workpool() 派生的子代理调用。默认开启，是把「一次性小能力」临时挂给子代理的机制。"
   },
   "eval.workpool.freshAgents": {
     "name": "workpool 全新代理",
-    "desc": "workpool 的每个工作项都派生全新子代理执行，而不是复用 worker 或批量打包队列项。默认 false。全新代理互不污染、隔离最好，但每项都付出冷启动成本，项多时更慢更贵。"
+    "desc": "workpool 的每个工作项都派生全新子代理执行，而不是复用空闲 worker 或批量打包队列项。默认 false。全新代理互不污染、隔离最好，但每项都付冷启动成本，项多时更慢更贵。"
   },
   "exa.enabled": {
     "name": "Exa 搜索源",
-    "desc": "启用 Exa 作为网页搜索提供商之一。默认开启。多个搜索源并存时按各自设置参与检索；不使用 Exa 或想减少外部请求的可关。"
+    "desc": "启用 Exa 作为网页搜索提供商之一。默认开启。多个搜索源并存时各自按配置参与检索；不用 Exa 或想减少外部请求的可关。"
   },
   "exa.searchDelayMs": {
     "name": "Exa 请求间隔",
-    "desc": "两次 Exa 搜索请求之间的最小间隔（毫秒），默认 1000，用于限速避免打爆配额；设 0 关闭限速。批量搜索频繁触发限流时可调大。"
+    "desc": "两次 Exa 搜索请求之间的最小间隔毫秒数，默认 1000，用于限速避免打爆配额；设 0 关闭限速。批量搜索频繁触发限流时可调大。"
   },
   "extendedContext": {
     "name": "扩展上下文窗口",
-    "desc": "在提供商支持时使用更大的上下文窗口，可能触发高级计价（premium pricing）。默认 false，即使用默认窗口或标准计价窗口。长会话爆窗频繁且不在乎差价时可开。"
+    "desc": "在提供商支持时使用更大的上下文窗口——例如 Codex 的 gpt-6-astra/gpt-6.1-sol 从 27.2 万 token 扩到约 92.2 万输入窗口——可能触发更高的长上下文计价。默认 false，即使用标准窗口。长会话频繁爆窗且不在乎差价时开启；/extended-context on/off 可会话内切换。"
   },
   "extensionHandlers.toolCallTimeoutMs": {
     "name": "扩展工具调用超时",
-    "desc": "扩展注册的 tool_call 处理器的活跃工作超时（毫秒），默认 30000；非法值回落到 30000，等待 omp 自有对话框的时间不计入。防止某个卡死的扩展处理器无限拖住工具调用。"
+    "desc": "扩展注册的 tool_call 处理器做主动工作的超时毫秒数，默认 30000；填非法值自动回退 30000，等待 omp 自有对话框的时间不计入。防止某个卡死的扩展处理器无限拖住工具调用。"
   },
   "extensions": {
     "name": "扩展定义列表",
     "desc_en": "Array of extension definitions (Gemini-style extensions), each with name/path etc., providing MCP servers, extra tools and context injection. Empty by default; extension files live in ~/.omp/agent/extensions/ and this array registers the entries to enable.",
-    "desc": "扩展（Gemini 风格 extensions）定义数组，每项含 name/path 等，可为 omp 提供 MCP 服务器、额外工具与上下文注入。默认空。扩展文件本身放 ~/.omp/agent/extensions/，此数组登记要启用的条目。"
+    "desc": "Gemini 风格扩展的定义数组，每项登记一个扩展（可为 omp 提供 MCP 服务器、额外工具和上下文注入）。默认空。扩展本体放 ~/.omp/agent/extensions/，这个数组决定启用哪些；disabledExtensions 可临时停用单个扩展。"
   },
   "externalThinking": {
     "name": "外部思考草稿区",
-    "desc": "启用私有草稿区（scratchpad）：模型的中间推理写到你看不到的外部区域。默认 false。注意：开启会禁用受支持的 GPT/Claude/Gemini 原生推理（native reasoning），两者互斥——原生推理通常质量更高，除非确有需要别开。"
+    "desc": "给模型一块你看不到的私有草稿区（scratchpad）写中间推理。默认 false。注意它和 GPT/Claude/Gemini 的原生推理功能互斥——开启会禁用原生推理，而原生推理通常质量更高，除非确有需要别开。"
   },
   "features.unexpectedStopDetection": {
     "name": "异常停止自动恢复",
-    "desc": "助手没有可见消息就停止时自动恢复：none = 禁用；mechanical（默认）= 机械重试这类停止（工具调用中的停止不算）；smart = 机械恢复之外，再用小模型对「只有文字的停止」做分类判断是否需要恢复。smart 覆盖面广但多花小模型调用。",
+    "desc": "助手没产出可见消息就停止时自动恢复：none = 禁用；mechanical（默认）= 对这类停止做机械重试；smart = 机械恢复之外再用小模型对「只有文字的停止」分类判断是否该恢复。smart 覆盖面更广但多一次小模型调用。",
     "options": [
       "none",
       "mechanical",
@@ -1099,11 +1099,11 @@
   },
   "fetch.enabled": {
     "name": "read 抓取 URL",
-    "desc": "允许 read 工具抓取并处理 URL（网页正文转 markdown 等能力的基础开关）。默认开启。关闭后模型只能读本地文件，联网获取资料需走其他工具。"
+    "desc": "允许 read 工具抓取并处理 URL（网页正文转 markdown 等能力的基础开关）。默认开启。关闭后模型只能读本地文件，联网取资料要走其他工具。"
   },
   "find.enabled": {
     "name": "语义搜索 find 工具",
-    "desc": "find 工具：用自然语言搜文件与行范围，候选结果由 judge 模型角色评判排序。auto（默认）= 仅当 judge 角色解析为原生 TypeSafe jev 模型时启用；on = 无条件启用；off = 禁用。judge 角色没配好时 auto 会自动不启用，避免劣质排序。",
+    "desc": "find 工具用自然语言搜文件和行范围，候选结果由 judge 角色模型评判排序。auto（默认）= 仅当 judge 角色解析成原生 TypeSafe jev 模型时才启用；on = 无条件启用；off = 禁用。judge 角色没配好时 auto 会自动不启用，避免劣质排序。",
     "options": [
       "auto",
       "on",
@@ -1112,147 +1112,147 @@
   },
   "followUpMode": {
     "name": "追问消息消化方式",
-    "desc": "回合结束后，排队的 follow-up（追问）消息如何投喂：one-at-a-time（默认）= 逐条消化，每条作为独立回合按序处理，便于逐个纠正方向；all = 全部一次性并入下一回合。官方 settings 文档默认同为 one-at-a-time。",
+    "desc": "回合结束后排队等待的 follow-up（追问）消息如何投喂：one-at-a-time（默认）= 逐条消化，每条作为独立回合按序处理，便于逐个纠正方向；all = 全部一次性并入下一回合，更省调用但没法中途纠偏。",
     "options": [
       "all",
       "one-at-a-time"
     ]
   },
   "gc.archive": {
-    "name": "清理会话归档",
+    "name": "GC 清理过期归档",
     "desc_en": "Part of session-store garbage collection: allows cleaning archive files of old sessions. Default true (inferred, undocumented upstream); the gc family controls automatic cleanup of ~/.omp session storage — turn it off if you never want omp to delete archives.",
-    "desc": "会话存储垃圾回收的一部分：允许清理旧会话的归档文件。默认 true。（推测，官方未说明具体细节）gc 家族整体控制 ~/.omp 会话存储的自动清理；不想让 omp 自动删任何归档就关掉。"
+    "desc": "`omp gc` 垃圾回收时是否执行归档清理：把超过 coldArchiveAfterDays 天的会话归档标记为可回收并清除。默认 true。这是 omp 会话存储的磁盘维护功能；不想让 gc 动归档文件就关掉。"
   },
   "gc.blobs": {
-    "name": "清理孤儿 blob",
+    "name": "GC 清理孤儿 blob",
     "desc_en": "Garbage-collect blobs (attachments, binary artifacts, etc.) no longer referenced by any session. Default true (inferred, undocumented upstream); the main source of reclaimed disk space — beware if external scripts reference those blob files directly.",
-    "desc": "垃圾回收时清理不再被任何会话引用的 blob（附件、二进制工件等）。默认 true。（推测，官方未说明细节）回收磁盘空间的主要来源；有外部脚本直接引用这些 blob 文件的要小心。"
+    "desc": "`omp gc` 时清理不再被任何会话引用的 blob（附件、二进制工件等大对象），是回收磁盘空间的主要来源。默认 true。若有外部脚本直接引用这些 blob 文件需小心。"
   },
   "gc.coldArchiveAfterDays": {
     "name": "冷归档天数",
     "desc_en": "Sessions archived longer than this many days (default 30) move to cold archive and become reclaimable by the cleanup flow (inferred, undocumented upstream); larger keeps them around longer, smaller frees disk sooner.",
-    "desc": "会话归档存放超过该天数（默认 30）后转入「冷归档」，之后可被清理流程回收。（推测，官方未说明细节）调大保留更久，调小更快释放磁盘。"
+    "desc": "会话归档存放超过这个天数（默认 30）后被当作冷归档，进入可清理范围。仅 gc.archive 开启时生效；调大保留更久，调小更快释放磁盘。"
   },
   "gc.retainNewestGlobal": {
     "name": "全局保留会话数",
     "desc_en": "Unconditionally keep the newest N sessions (default 20) profile-wide from garbage collection (inferred, undocumented upstream); the safety floor against deleting your latest work — keep it at a sensible value.",
-    "desc": "整个 profile 范围内无条件保留最近 N 个会话不被垃圾回收，默认 20。（推测，官方未说明细节）是防止误删最新工作的兜底线，建议保持合理值。"
+    "desc": "整个 profile 范围内无条件保留最近 N 个会话不被垃圾回收，默认 20。是防止误删最新工作的兜底线，建议保持合理值。"
   },
   "gc.retainNewestPerCwd": {
     "name": "每目录保留会话数",
     "desc_en": "Always keep at least the newest N sessions (default 10) per working directory from collection (inferred, undocumented upstream); stops a heavily used project's history from being crowded out by other projects' growth.",
-    "desc": "每个工作目录至少保留最近 N 个会话不被回收，默认 10。（推测，官方未说明细节）避免常用项目的历史被其他项目的增长挤掉。"
+    "desc": "每个工作目录至少保留最近 N 个会话不被回收，默认 10。避免常用项目的历史被其他项目的大量会话挤掉。"
   },
   "gc.stale": {
-    "name": "清理陈旧会话",
+    "name": "GC 清理陈旧会话",
     "desc_en": "Allow extra cleanup of stale sessions. Default false, i.e. no stale cleanup by default (inferred, undocumented upstream); when enabled, staleRetainDays/staleRetainNewest act as retention floors. Consider only under disk pressure.",
-    "desc": "允许额外清理「陈旧（stale）」会话。默认 false，即默认不做 stale 清理。（推测，官方未说明细节）开启后配合 staleRetainDays/staleRetainNewest 作为保留底线。磁盘紧张时才考虑开。"
+    "desc": "是否额外清理「陈旧（stale）」会话。默认 false，即默认不动这类会话。开启后配合 staleRetainDays / staleRetainNewest 作为保留底线；磁盘紧张时才考虑开。"
   },
   "gc.staleRetainDays": {
     "name": "陈旧保留天数",
     "desc_en": "One floor of stale cleanup: sessions within the last this-many days (default 30) are not stale and are not cleaned (inferred, undocumented upstream); only effective when gc.stale is on.",
-    "desc": "stale 清理的底线之一：最近该天数（默认 30）内的会话不算陈旧、不清理。（推测，官方未说明细节）仅 gc.stale 开启时生效。"
+    "desc": "stale 清理的底线之一：最近这个天数（默认 30）内的会话不算陈旧、不清理。仅 gc.stale 开启时生效。"
   },
   "gc.staleRetainNewest": {
     "name": "陈旧保留条数",
     "desc_en": "Second floor of stale cleanup: the newest N (default 20) sessions in each scope are always kept (inferred, undocumented upstream); only effective when gc.stale is on.",
-    "desc": "stale 清理的另一条底线：每个范围内最新 N 个（默认 20）会话始终保留。（推测，官方未说明细节）仅 gc.stale 开启时生效。"
+    "desc": "stale 清理的另一条底线：每个范围内最新 N 个（默认 20）会话始终保留。仅 gc.stale 开启时生效。"
   },
   "gc.wal": {
-    "name": "清理 WAL 残留",
+    "name": "GC 清理 WAL 残留",
     "desc_en": "Garbage-collect leftover SQLite WAL/SHM sidecar files. Default true (inferred, undocumented upstream); leftovers mostly come from abnormally exited databases and are rare after a clean shutdown.",
-    "desc": "垃圾回收时清理残留的 SQLite WAL/SHM 边车文件。默认 true。（推测，官方未说明细节）残留 WAL 多来自异常退出的数据库，清掉可释放空间，正常关闭时本就很少残留。"
+    "desc": "`omp gc` 时对会话 SQLite 数据库执行 WAL 检查点合并、清理残留的 WAL/SHM 边车文件。默认 true。残留 WAL 多来自异常退出，清掉可释放空间。"
   },
   "generate_image.enabled": {
     "name": "文生图工具",
-    "desc": "启用 generate_image 工具：文本生成图像与图像编辑。默认 false。在 tools.xdev（xd:// 设备）开启时以 xd:// 设备形式暴露。需要模型出图的场景再开。"
+    "desc": "启用 generate_image 工具：文本生成图像和图像编辑。默认 false。tools.xdev 开启时它以 xd:// 设备形式按需暴露，不在每次请求里占 schema 名额。需要模型出图的场景再开，并用 modelRoles.image 指定出图模型。"
   },
   "git.enabled": {
-    "name": "git 状态显示",
-    "desc": "在 TUI 中显示 git 分支、工作区状态与 PR 信息，并监视仓库元数据变化。默认开启。关闭可省一点监视开销，但状态栏与上下文里的 git 感知会缺失。"
+    "name": "git 状态感知",
+    "desc": "在 TUI 中显示 git 分支、工作区状态和 PR 信息，并监视仓库元数据变化。默认开启。关闭可省一点监视开销，但状态栏和上下文里的 git 感知会缺失。"
   },
   "github.cache.enabled": {
     "name": "GitHub 视图缓存",
-    "desc": "把 issue/PR 视图的渲染结果缓存到 ~/.omp/cache/github-cache.db，重复读取直接命中缓存、零成本。默认开启。"
+    "desc": "把 issue/PR 视图的渲染结果缓存到 ~/.omp/cache/github-cache.db，重复读取直接命中缓存、不产生额外请求。默认开启。"
   },
   "github.cache.hardTtlSec": {
     "name": "缓存硬过期秒数",
-    "desc": "超过软 TTL 后仍先返回缓存并后台刷新；超过该硬 TTL（默认 604800 秒 = 7 天）缓存条目直接丢弃、强制重取。"
+    "desc": "GitHub 缓存的硬过期时间：超过软 TTL 后仍先返回缓存并后台刷新；超过这个硬 TTL（默认 604800 秒 = 7 天）则直接丢弃、强制重新获取。"
   },
   "github.cache.softTtlSec": {
     "name": "缓存软过期秒数",
-    "desc": "该窗口内（默认 300 秒 = 5 分钟）缓存行直接返回，窗口外后台刷新。即「5 分钟内重复看同一个 issue/PR 不产生额外请求」。"
+    "desc": "这个窗口内（默认 300 秒 = 5 分钟）缓存条目直接返回，窗口外才后台刷新。即「5 分钟内重复看同一个 issue/PR 不发请求」。"
   },
   "github.enabled": {
     "name": "GitHub 工具",
-    "desc": "启用 github 工具：按操作分发（op-based）覆盖仓库浏览、issue、PR、diff、搜索、checkout、push 与 Actions 监视等工作流。默认 false。配合 GitHub 凭据使用，重度 GitHub 协作场景开启。"
+    "desc": "启用 github 工具：按操作分发（op-based）覆盖仓库浏览、issue、PR、diff、搜索、checkout、push 和 Actions 监视等工作流。默认 false。重度 GitHub 协作场景开启，需要配好 GitHub 凭据。"
   },
   "glob.enabled": {
-    "name": "glob 文件查找工具",
-    "desc": "启用 glob 工具：按通配模式查找文件与目录，遵守 .gitignore。默认开启。"
+    "name": "glob 文件查找",
+    "desc": "启用 glob 工具：按 *、** 这类通配模式查找文件和目录，遵守 .gitignore。默认开启，是模型定位文件的主力工具之一，一般保持开。"
   },
   "goal.continuationModes": {
     "name": "目标自动续跑模式",
-    "desc": "允许「活跃目标」在回合之间自动续跑的运行模式列表，默认 [\"interactive\"]（即交互式 TUI 模式）。其他运行模式（如脚本化）默认不自动续跑，防止无人值守时目标循环失控。"
+    "desc": "允许「活跃目标」在回合之间自动续跑的运行模式列表，默认 [\"interactive\"]，即只有交互式 TUI 模式会自动续跑；脚本化等模式不自动续，防止无人值守时目标循环失控。"
   },
   "goal.enabled": {
     "name": "目标模式",
-    "desc": "启用每会话的 goal（目标）模式与隐藏 goal 工具：给会话设定带 token 预算的目标，agent 在回合间围绕目标推进。默认开启。"
+    "desc": "启用每会话的 goal（目标）模式与隐藏 goal 工具：给会话设定带 token 预算的目标，agent 在回合间围绕目标持续推进。默认开启。"
   },
   "goal.statusInFooter": {
     "name": "目标状态入状态行",
-    "desc": "在状态行的目标指示器旁边显示剩余 token 预算。默认开启，随时能看到目标模式还剩多少额度。"
+    "desc": "在状态行的目标指示器旁显示剩余 token 预算。默认开启。用 goal 模式跑带额度限制的任务时，随时能看到还剩多少额度。"
   },
   "grep.contextAfter": {
     "name": "grep 后文行数",
-    "desc": "grep 每个匹配行之后附带的上下文行数，默认 3。调大易读但输出更多、更费 token；模型的搜索通常自带判断，一般不动。"
+    "desc": "grep 每个匹配行之后附带的上下文行数，默认 3。调大更易读但输出更多、更费 token；一般不动。"
   },
   "grep.contextBefore": {
     "name": "grep 前文行数",
-    "desc": "grep 每个匹配行之前附带的上下文行数，默认 1。与 grep.contextAfter 一同控制匹配结果的紧凑度。"
+    "desc": "grep 每个匹配行之前附带的上下文行数，默认 1。与 grep.contextAfter 一起控制搜索结果的紧凑度。"
   },
   "grep.enabled": {
-    "name": "grep 搜索工具",
-    "desc": "启用 grep 工具：正则内容搜索（遵守 .gitignore，支持文件选择器与行范围）。默认开启。"
+    "name": "grep 内容搜索",
+    "desc": "启用 grep 工具：用正则表达式搜索文件内容，遵守 .gitignore，支持文件选择器和行范围。默认开启，是模型定位代码的主力工具，一般保持开。"
   },
   "hideThinkingBlock": {
     "name": "隐藏思考块",
-    "desc": "隐藏助手回复中的思考（thinking）块，不渲染推理过程。官方默认 false（本机已改为 true）。想看模型推理过程时关掉；追求界面干净可开，但会失去观察思考内容的能力。"
+    "desc": "隐藏助手回复中的思考（thinking）块，不渲染推理过程。官方默认 false（本机已改为 true）。想看模型推理过程就关掉；追求界面干净就开，但会失去观察思考内容的能力。--hide-thinking 可单次覆盖。"
   },
   "hindsight.apiToken": {
     "name": "Hindsight 令牌",
-    "desc": "访问带认证的 Hindsight 服务器（云端或自建）所需的 Bearer token，默认未设置。对应环境变量 HINDSIGHT_API_TOKEN（优先级更高）。本地无认证服务器无需配置；属于凭据，列表输出中脱敏。"
+    "desc": "访问带认证的 Hindsight 服务器（云端或自建）所需的 Bearer token，默认未设置。环境变量 HINDSIGHT_API_TOKEN 优先。本地无认证服务器无需配置；属凭据类，列表输出会脱敏。"
   },
   "hindsight.apiUrl": {
     "name": "Hindsight 服务地址",
-    "desc": "Hindsight 记忆服务的 URL（Cloud 或自建均可），默认 http://localhost:8888。用 Hindsight Cloud 时改成其 API 地址；服务不可达不会影响编码会话本身，只是记忆功能不可用。"
+    "desc": "Hindsight 记忆服务的 URL（Cloud 或自建均可），默认 http://localhost:8888。用 Hindsight Cloud 就改成它的 API 地址；服务不可达不影响编码会话本身，只是记忆功能不可用。"
   },
   "hindsight.autoRecall": {
-    "name": "Hindsight 自动召回",
-    "desc": "每个会话的第一个模型回合之前自动从 Hindsight 召回相关记忆注入上下文。默认 true。关闭后只能靠你在对话里主动要求 recall。召回内容为背景参考，与当前提示冲突时以当前为准。"
+    "name": "自动召回记忆",
+    "desc": "每个会话的第一个模型回合之前，自动从 Hindsight 召回相关记忆注入上下文。默认 true。关闭后只能靠在对话里主动要求 recall。召回内容是背景参考，与当前提示冲突时以当前为准。"
   },
   "hindsight.autoRetain": {
-    "name": "Hindsight 自动留存",
-    "desc": "按节奏（每 retainEveryNTurns 个用户回合）及会话边界自动把对话文本留存到 Hindsight 服务器；只送用户与助手文本，不含工具调用、工具结果与思考块。默认 true。隐私要点：开启即意味着会话文本离开本机；设 false 则只做提示驱动的手动留存。"
+    "name": "自动留存对话",
+    "desc": "按节奏（每 retainEveryNTurns 个用户回合）及会话边界自动把对话文本留存到 Hindsight 服务器；只送用户与助手文本，不含工具调用、工具结果和思考块。默认 true。隐私要点：开启即意味着会话文本离开本机；设 false 则只做手动留存。"
   },
   "hindsight.bankId": {
-    "name": "Hindsight 库标识",
-    "desc": "Hindsight 记忆库（bank）的基础 id，默认 omp；在 per-project 模式下会在其后追加项目名，派生出各项目独立的 bank。想让多个项目共享记忆就保持固定值并配 global/per-project-tagged 范围。"
+    "name": "记忆库标识",
+    "desc": "Hindsight 记忆库（bank）的基础 id，默认 omp；per-project 模式下会在其后追加项目名，派生出各项目独立的库。想让多个项目共享记忆，保持固定值并配 global 或 per-project-tagged 范围。"
   },
   "hindsight.bankIdPrefix": {
-    "name": "Hindsight 库前缀",
+    "name": "记忆库前缀",
     "desc_en": "Optional prefix prepended to the base bank id, unset by default; separates environments or teams on one Hindsight server (e.g. yilin-omp) so you do not share one library with others.",
-    "desc": "加在基础 bank id 前面的可选前缀，默认未设置。用于在同一台 Hindsight 服务器上区分不同环境/团队（如 yilin-omp），避免与他人共用同一个库。"
+    "desc": "加在基础 bank id 前面的可选前缀，默认未设置。用于在同一台 Hindsight 服务器上区分不同环境或团队（如 yilin-omp），避免与他人共用同一个库。"
   },
   "hindsight.bankMission": {
-    "name": "Hindsight 库使命",
+    "name": "记忆库使命说明",
     "desc_en": "Optional mission statement attached when omp creates a bank for you, unset by default; describe the library's purpose boundary (e.g. only this project's technical decisions) for the server's synthesis to respect.",
-    "desc": "omp 为你创建 bank 时附加给该库的可选使命（mission）说明，默认未设置。可写上这个库的用途边界（如「只存本项目的技术决策」），供服务端综合时参考。"
+    "desc": "omp 为你创建 bank 时附加给该库的可选使命（mission）说明，默认未设置。可写上这个库的用途边界（如「只存本项目的技术决策」），供服务端做综合时参考。"
   },
   "hindsight.debug": {
     "name": "Hindsight 调试日志",
     "desc_en": "Logs Hindsight requests and backend debug output. Default false; when enabled, why-no-recall or retain-failure questions become obvious — keep off otherwise to avoid log noise.",
-    "desc": "输出 Hindsight 的请求与后端调试日志。默认 false。启用后排查「为什么没召回/留存失败」一目了然；平时关闭避免日志噪音。"
+    "desc": "输出 Hindsight 的请求与后端调试日志。默认 false。排查「为什么没召回、留存失败」时打开一目了然；平时关闭避免日志噪音。"
   },
   "hindsight.mentalModelAutoSeed": {
     "name": "心智模型自动播种",
@@ -1261,16 +1261,16 @@
   "hindsight.mentalModelMaxRenderChars": {
     "name": "心智模型渲染上限",
     "desc_en": "Maximum characters of mental models (curated summaries) rendered into the session, default 16000, truncated beyond; prevents an ever-growing model from blowing up the system prompt.",
-    "desc": "心智模型（精选摘要）渲染进会话的最大字符数，默认 16000。超出截断，防止模型积累太多后把系统提示撑爆。"
+    "desc": "心智模型（服务端整理好的精选摘要）渲染进会话的最大字符数，默认 16000，超出截断。防止模型积累太多后把系统提示撑爆。"
   },
   "hindsight.mentalModelsEnabled": {
     "name": "心智模型注入",
     "desc": "会话启动时把 bank 上精选的心智模型摘要读入开发者指令区。默认 true；只读取、不写入。想同时自动创建缺失的内置模型需再开 hindsight.mentalModelAutoSeed。"
   },
   "hindsight.recallBudget": {
-    "name": "召回努力档位",
+    "name": "召回检索档位",
     "desc_en": "Retrieval effort level for recall: low / mid (default) / high — higher is more thorough but slower with more server load. Maps to the HINDSIGHT_RECALL_BUDGET environment variable.",
-    "desc": "召回（recall）的检索努力档位：low / mid（默认）/ high，越高检索越全面但越慢、服务端开销越大。对应环境变量 HINDSIGHT_RECALL_BUDGET。",
+    "desc": "召回（recall）的检索努力档位：low / mid（默认）/ high，越高检索越全面但越慢、服务端开销越大。环境变量 HINDSIGHT_RECALL_BUDGET 可覆盖。",
     "options": [
       "low",
       "mid",
@@ -1278,29 +1278,29 @@
     ]
   },
   "hindsight.recallContextTurns": {
-    "name": "召回查询上下文轮数",
+    "name": "召回附带轮数",
     "desc_en": "How many recent user turns are attached as context when assembling the recall query, default 1; larger represents recent intent better but sends more text to the server.",
-    "desc": "组装召回查询时附带的前几个「用户回合」作为上下文，默认 1。调大查询更能代表近期意图，但也会送更多文本去服务端。"
+    "desc": "组装召回查询时附带前面多少个用户回合作为上下文，默认 1。调大查询更能代表近期意图，但也会把更多文本发到服务端。"
   },
   "hindsight.recallMaxQueryChars": {
     "name": "召回查询长度上限",
     "desc_en": "Maximum length of the recall query string, default 800 characters, truncated beyond; together with recallContextTurns it bounds the recall request size.",
-    "desc": "召回查询字符串的最大长度，默认 800 字符，超出截断。与 recallContextTurns 共同控制召回请求的体积。"
+    "desc": "召回查询字符串的最大长度，默认 800 字符，超出截断。与 recallContextTurns 一起控制召回请求的体积。"
   },
   "hindsight.recallMaxTokens": {
-    "name": "召回结果 token 上限",
+    "name": "召回结果上限",
     "desc_en": "Maximum tokens of recall results injected into context, default 1024; larger brings more memory at the cost of working context, smaller is leaner.",
-    "desc": "召回结果注入上下文的最大 token 量，默认 1024。调大可带入更多记忆但挤占工作上下文；调小则更精简。"
+    "desc": "召回结果注入上下文的最大 token 量，默认 1024。调大可带入更多记忆但挤占工作上下文；调小更精简。"
   },
   "hindsight.recallTimeoutMs": {
     "name": "召回超时",
     "desc_en": "Deadline in milliseconds for a single recall request, default 30000; a timeout never interrupts the coding session — that recall is just abandoned.",
-    "desc": "单次召回请求的截止时间（毫秒），默认 30000。超时不影响编码会话继续，只是该次召回放弃。"
+    "desc": "单次召回请求的截止时间毫秒数，默认 30000。超时不会让编码会话中断，只是这次召回放弃、会话继续无记忆运行。网络差时可调大。"
   },
   "hindsight.recallTypes": {
     "name": "召回记忆类型",
     "desc_en": "List of Hindsight memory types allowed to be recalled, default [\"world\", \"experience\"] — world for factual knowledge, experience for lessons; types outside the list are never recalled. (inferred, undocumented upstream; whether other types such as observations are configurable follows the Hindsight docs)",
-    "desc": "允许被召回的 Hindsight 记忆类型列表，默认 [\"world\", \"experience\"]：world 为事实性知识，experience 为经验记录。不在列表中的类型不会被召回。（推测：其他类型如观察/行为类是否可配以 Hindsight 文档为准）"
+    "desc": "允许被召回的 Hindsight 记忆类型列表，默认 [\"world\", \"experience\"]：world 是事实性知识，experience 是经验记录。不在列表中的类型不会被召回。"
   },
   "hindsight.reflectTimeoutMs": {
     "name": "综合反思超时",
@@ -1308,19 +1308,19 @@
     "desc": "Hindsight 服务端做综合反思（synthesis/reflect，如生成心智模型）的截止时间，默认 120000 毫秒（2 分钟）。大型 bank 综合较慢时可调大。"
   },
   "hindsight.requestTimeoutMs": {
-    "name": "Hindsight 请求超时",
+    "name": "请求默认超时",
     "desc_en": "Default deadline in milliseconds for Hindsight requests, default 30000; used by any request not covered by the recall/retain/reflect-specific timeouts.",
-    "desc": "Hindsight 请求的默认截止时间（毫秒），默认 30000，未被 recall/retain/reflect 专用超时覆盖的请求都用它。"
+    "desc": "Hindsight 请求的默认截止时间毫秒数，默认 30000；没被 recall/retain/reflect 专用超时覆盖的请求都用它。"
   },
   "hindsight.retainContext": {
     "name": "留存上下文标签",
     "desc_en": "Context label sent together with retained content, default \"omp\", telling the server these memories come from omp sessions; distinguishes sources when several tools share one bank.",
-    "desc": "留存（retain）数据时随内容一起发送的上下文标签，默认 \"omp\"，让服务端知道这批记忆来自 omp 会话。多工具共用一个 bank 时可区分来源。"
+    "desc": "留存（retain）数据时随内容一起发送的上下文标签，默认 \"omp\"，让服务端知道这批记忆来自 omp 会话。多个工具共用一个 bank 时可区分来源。"
   },
   "hindsight.retainEveryNTurns": {
     "name": "留存间隔回合数",
     "desc_en": "Minimum number of user turns between automatic retains, default 3 (one retain every 3 user turns, plus session boundaries); larger reduces request frequency, smaller is timelier.",
-    "desc": "自动留存之间最少间隔的用户回合数，默认 3（每 3 个用户回合留存一次，外加会话边界）。调大减少请求频率，调小记忆更即时。"
+    "desc": "两次自动留存之间最少间隔的用户回合数，默认 3（每 3 个用户回合留存一次，外加会话边界）。调大减少请求频率，调小记忆更即时。"
   },
   "hindsight.retainMission": {
     "name": "留存指令",
@@ -1329,7 +1329,7 @@
   },
   "hindsight.retainMode": {
     "name": "留存模式",
-    "desc": "full-session（默认）= 每个会话在服务端 upsert 成一份文档（推荐）；last-turn = 按回合边界切块、分块留存，便于只更新最近内容。环境变量 HINDSIGHT_RETAIN_MODE 可覆盖。",
+    "desc": "full-session（默认，推荐）= 每个会话在服务端 upsert 成一份文档；last-turn = 按回合边界切块、分块留存，便于只更新最近内容。环境变量 HINDSIGHT_RETAIN_MODE 可覆盖。",
     "options": [
       "full-session",
       "last-turn"
@@ -1338,15 +1338,15 @@
   "hindsight.retainOverlapTurns": {
     "name": "留存块重叠轮数",
     "desc_en": "Number of overlapping turns between adjacent retain chunks in last-turn mode, default 2, avoiding context loss at chunk boundaries; meaningless in full-session mode.",
-    "desc": "last-turn 模式下相邻留存块之间重叠的回合数，默认 2，避免切分边界处丢上下文。full-session 模式下无意义。"
+    "desc": "last-turn 模式下相邻留存块之间重叠的回合数，默认 2，避免切分边界丢上下文。full-session 模式下无意义。"
   },
   "hindsight.retainTimeoutMs": {
     "name": "留存超时",
     "desc_en": "Deadline in milliseconds for a single retain request, default 60000; large session-boundary retains can be slow, so relax it if needed.",
-    "desc": "单次留存请求的截止时间（毫秒），默认 60000。会话边界的大批量留存可能较慢，超时可放宽。"
+    "desc": "单次留存请求的截止时间毫秒数，默认 60000。会话边界的大批量留存可能较慢，超时可以放宽；超时只丢这一次留存，不影响会话。"
   },
   "hindsight.scoping": {
-    "name": "Hindsight 范围模式",
+    "name": "记忆库范围模式",
     "desc": "记忆库的范围划分：global = 全部项目共用一个库；per-project = 按目录名隔离、项目互不可见；per-project-tagged（默认）= 写入带项目标签的共享库，召回时项目记忆与全局未打标签记忆合并。客户端项目等硬隔离场景选 per-project。",
     "options": [
       "global",
@@ -1356,19 +1356,19 @@
   },
   "ida.enabled": {
     "name": "IDA 逆向集成",
-    "desc": "启用后用 `read` 打开的可执行文件会交给 IDA Pro（idalib）解析，并启用 ida 工具做反汇编/逆向查询。默认开启，但本机没装 IDA 时该设置不生效（inert）。逆向工程场景的核心开关。"
+    "desc": "启用后，用 read 打开的可执行文件会交给 IDA Pro（idalib）解析，并开放 ida 工具做反汇编/逆向查询。默认开启，但本机没装 IDA 时此设置不生效。逆向工程场景的核心开关。"
   },
   "ida.idleCloseSec": {
-    "name": "IDA 库空闲关闭",
-    "desc": "IDA 数据库空闲超过该秒数（默认 900 = 15 分钟）后自动保存并关闭，释放内存；0 = 永不。重开后 exec 命名空间会重置。"
+    "name": "IDA 数据库空闲关闭",
+    "desc": "IDA 数据库空闲超过这个秒数（默认 900，即 15 分钟）后自动保存并关闭，释放内存；0 = 永不关闭。重新打开时 exec 命名空间会重置。"
   },
   "ida.installDir": {
     "name": "IDA 安装目录",
-    "desc": "包含 libidalib 的目录，会导出为 IDADIR 环境变量；留空（默认）则按 $IDADIR、ida-config.json 与标准安装路径自动探测。绿色版/非标准路径安装时需手动指定。"
+    "desc": "包含 libidalib 的目录，会被导出为 IDADIR 环境变量；留空（默认）按 $IDADIR、ida-config.json 和标准安装路径自动探测。绿色版或装在非标准路径时手动指定。"
   },
   "ida.maxOpen": {
-    "name": "IDA 最大同时打开数",
-    "desc": "每个项目最多同时打开的 IDA 数据库数量（在 omp ps 里表现为 omp.ida.* 守护进程），默认 4；超出时自动保存并关闭最久未使用的空闲库。"
+    "name": "IDA 同时打开上限",
+    "desc": "每个项目最多同时打开的 IDA 数据库数量（在 omp ps 里表现为 omp.ida.* 守护进程），默认 4；再开一个时自动保存并关闭空闲中最久未用的那个。"
   },
   "ida.python": {
     "name": "IDA Python 解释器",
@@ -1376,49 +1376,49 @@
   },
   "images.autoResize": {
     "name": "图片自动缩放",
-    "desc": "把大图缩放到最大 2000x2000 再发给模型，提升兼容性（部分模型对超大图直接报错）。默认开启。需要原始分辨率的场景才关。"
+    "desc": "把大图缩放到最大 2000×2000 再发给模型，提升兼容性（部分模型对超大图直接报错）。默认开启。只有确实需要原始分辨率的场景才关。"
   },
   "images.blockImages": {
     "name": "禁止发送图片",
-    "desc": "阻止任何图片被发送给 LLM 提供商。默认 false。隐私敏感或用纯文本模型时开启；开启后附带图片的会话只能拿到文字部分。"
+    "desc": "阻止任何图片被发送给 LLM 提供商。默认 false。隐私敏感或只用纯文本模型时开启；开启后带图片的会话只能拿到文字部分。"
   },
   "images.describeForTextModels": {
     "name": "文本模型图片转述",
-    "desc": "给不支持视觉的模型附带图片时，把图片存到 local:// 并由一个视觉模型生成文字描述注入上下文，而不是直接丢弃。默认 true，让「文字模型也能理解图片大意」。会多一次视觉模型调用（费用+）。"
+    "desc": "给不支持视觉的模型附带图片时，把图片存到 local:// 并让一个视觉模型生成文字描述注入上下文，而不是直接丢弃。默认 true，让纯文本模型也能理解图片大意；代价是多一次视觉模型调用。"
   },
   "images.questionTimeoutMs": {
     "name": "图片提问超时",
-    "desc": "read 的 ?q= 图片提问背后视觉模型调用的每请求超时（毫秒），默认 300000（5 分钟）；设 0 不限时。卡死的提供商快速失败，而不是一直挂着等你手动中止。"
+    "desc": "read 的 ?q= 图片提问背后那次视觉模型调用的超时毫秒数，默认 300000（5 分钟）；设 0 不限时。提供商无响应时尽快返回超时错误，而不是一直挂着等你手动中止。"
   },
   "images.urls.backends": {
     "name": "图片外链后端链",
-    "desc": "images.urls.enabled 开启时，把出站图片发布为可访问 URL 的有序后端链，默认 [provider-files, tailscale, cloudflared, litterbox]：provider-files=提供商侧文件、tailscale=内网隧道、cloudflared=云隧道、litterbox=临时图床。按顺序尝试，失败顺延。"
+    "desc": "images.urls.enabled 开启后，把出站图片发布为可访问 URL 的有序后端链，默认 [provider-files, tailscale, cloudflared, litterbox]：provider-files=提供商侧文件托管、tailscale=内网隧道、cloudflared=云隧道、litterbox=临时图床。按顺序尝试，前一个失败顺延下一个。"
   },
   "images.urls.bindHost": {
     "name": "图片服务绑定地址",
-    "desc": "本地 blob 服务器的绑定地址，默认 127.0.0.1（回环，配合隧道使用）；用 0.0.0.0 则直接对外服务。直连对外时注意暴露面。"
+    "desc": "本地 blob 服务器的绑定地址，默认 127.0.0.1（回环，配合隧道用）；改成 0.0.0.0 则直接对外服务。直连对外时注意暴露面。"
   },
   "images.urls.command": {
     "name": "自定义上传命令",
-    "desc": "command 类后端的 argv 模板：{file} 为图片路径，{mime}/{ext} 可选，取 stdout 输出的最后一个 URL 作为外链（例：pasta -b -f {file}）。想用任意自托管图床时配置。"
+    "desc": "command 类后端的 argv 模板：{file} 是图片路径，{mime}/{ext} 可选；取该命令 stdout 输出的最后一个 URL 作为外链（例：pasta -b -f {file}）。想接任意自托管图床时配置。"
   },
   "images.urls.credentials": {
     "name": "图片后端凭据",
     "desc_en": "Per-backend credential mapping for image URL backends (record) (inferred, undocumented upstream) — e.g. tokens needed by tailscale/cloudflared or custom image hosts; credential-type, redacted in list output, unset by default.",
-    "desc": "各图片外链后端的凭据映射（记录型）。（推测，官方未说明细节）如 tailscle/cloudflared 或自定义图床所需的 token；属凭据类，列表输出中脱敏，默认未设置。"
+    "desc": "各图片外链后端的凭据映射（记录型，键为后端名），比如 tailscale/cloudflared 或自定义图床所需的 token。属凭据类，列表输出脱敏，默认未设置。"
   },
   "images.urls.enabled": {
     "name": "图片外链模式",
-    "desc": "出站图片经后端链发布为短 URL 发给提供商，而不是内联 base64。默认 false。部分只支持取 URL 的提供商必须开；全部后端失败或提供商抓取失败时自动回退内联，不会丢图。"
+    "desc": "把出站图片经后端链发布成短 URL 发给提供商，而不是内联 base64。默认 false。部分只支持抓 URL 的提供商必须开；所有后端失败或提供商抓取失败时自动回退内联，不会丢图。"
   },
   "images.urls.options": {
     "name": "图片后端选项",
     "desc_en": "Per-backend extra options for image URL backends (record keyed by backend name), empty by default (inferred, undocumented upstream); for passing custom parameters to specific backends. Leave empty for normal use.",
-    "desc": "各图片外链后端的附加选项（记录型，键为后端名）。默认空。（推测，官方未说明细节）用于给特定后端传自定义参数；普通用户留空。"
+    "desc": "各图片外链后端的附加选项（记录型，键为后端名），默认空。用于给特定后端传自定义参数，细节随后端而异；普通用户留空即可。"
   },
   "images.urls.publicBaseUrl": {
     "name": "图片外部基础 URL",
-    "desc": "本地 blob 服务器对外可达的基础 URL（如反向代理域名）。ssh 后端必须配置；直连模式可选。填错会导致提供商拉不到图并回退内联。"
+    "desc": "本地 blob 服务器对外可达的基础 URL（如反向代理域名）。ssh 后端必填；direct 直连模式可选。填错会导致提供商拉不到图并回退内联。"
   },
   "images.urls.sshRemotePort": {
     "name": "ssh 反向转发端口",
@@ -1426,23 +1426,23 @@
   },
   "images.urls.sshTarget": {
     "name": "ssh 转发目标",
-    "desc": "ssh 反向转发的目标地址（user@host）：把本地 blob 服务器经 ssh 隧道暴露到该主机上，适合「本地跑 omp、图片需公网可取」的场景。默认未设置。"
+    "desc": "ssh 反向转发的目标（user@host）：把本地 blob 服务器经 ssh 隧道暴露到那台主机上，适合「本地跑 omp、图片需公网可取」的场景。默认未设置。"
   },
   "images.urls.ttlHours": {
     "name": "图片链接有效期",
-    "desc": "本地托管图片 URL 的服务窗口（小时），从对话最后一次发送该图起算；恢复会话会在同一链接上重新计时。默认 72；0 = 只要 broker 在运行就一直有效。窗口过后外链失效，提供商无法再拉图。"
+    "desc": "本地托管图片 URL 的服务窗口（小时），从会话最后一次发送该图起算；恢复会话会对同一链接重新计时。默认 72；0 = 只要 broker 在运行就一直有效。窗口过后外链失效，提供商无法再拉图。"
   },
   "includeModelInPrompt": {
     "name": "提示中标注模型",
-    "desc": "在系统提示中写明当前使用的模型标识，让 agent 知道「我是谁」。默认开启。模型有自知之明后能按自身能力调整行为（如不假设自己有视觉）；不影响费用。"
+    "desc": "在系统提示里写明当前使用的模型标识，让 agent 知道「我是谁」。默认开启。模型有自知之明后能按自身能力调整行为（比如不假设自己有视觉）；不影响费用。"
   },
   "includeWorkspaceTree": {
     "name": "提示含目录树",
-    "desc": "在系统提示中渲染工作区目录树。官方默认 false。警告：文件一有变动就会击穿（bust）跨会话的提示缓存，导致整段系统提示按新缓存重新计费，费用明显上升——除非明确需要，保持关闭。"
+    "desc": "在系统提示里渲染工作区目录树。默认 false。警告：文件一有变动就会击穿跨会话的提示缓存，整段系统提示按新缓存重新计费，费用明显上升——除非明确需要，保持关闭。"
   },
   "inlineToolDescriptors": {
     "name": "工具描述内联",
-    "desc": "把完整的工具描述直接写进系统提示、并从工具 schema 中剥离顶层/嵌套描述，使描述文本只发送一次，节省重复 token。auto（默认）= 仅 Gemini 模型启用、其他保持 schema 内描述；on = 一律内联；off = 一律不内联。",
+    "desc": "把完整的工具描述写进系统提示、并从工具 schema 里剥离顶层/嵌套描述，让描述文本只发送一次，节省重复 token。auto（默认）= 只对 Gemini 模型启用、其他保持 schema 内描述；on = 一律内联；off = 一律不内联。",
     "options": [
       "auto",
       "on",
@@ -1451,7 +1451,7 @@
   },
   "input.bareExitOnEmptySession": {
     "name": "裸退出词生效",
-    "desc": "会话还没有第一条消息时，输入 exit / quit / q（任意大小写）直接退出程序，而不是把这个词发给模型。默认 true，防止手滑把「q」变成一次无意义的提问。"
+    "desc": "会话还没有第一条消息时，输入 exit / quit / q（任意大小写）直接退出程序，而不是把这个词发给模型。默认 true，防止手滑把 q 变成一次无意义的提问。"
   },
   "input.bareSlashCommands": {
     "name": "裸命令名触发",
@@ -1459,7 +1459,7 @@
   },
   "interruptMode": {
     "name": "打断模式",
-    "desc": "你插话转向（steer）时是否立刻打断正在执行的工具：immediate = 立即中断当前工具调用（官方默认）；wait = 让当前工具跑完再插入你的消息。本机已改为 wait——牺牲一点响应性，换工具操作不被拦腰截断。",
+    "desc": "你插话转向（steer）时是否立刻打断正在执行的工具：immediate（官方默认）= 立即中断当前工具调用；wait = 让当前工具跑完再插入你的消息。本机已改为 wait——牺牲一点响应性，换工具操作不被拦腰截断。",
     "options": [
       "immediate",
       "wait"
@@ -1467,7 +1467,7 @@
   },
   "isolation.backend": {
     "name": "隔离克隆后端",
-    "desc": "子代理隔离与 worktree 克隆使用的文件系统后端：auto（默认）= 自动选最佳可用；apfs=macOS clonefile；btrfs=btrfs 子卷快照；zfs=ZFS 快照+克隆；reflink=CoW reflink；overlayfs=overlay 挂载；projfs=Windows Projected FS；block-clone=块级克隆；rcopy=普通复制兜底（最慢但处处可用，node_modules 等构建产物会随复制带过去）。克隆越快，子代理隔离越便宜。",
+    "desc": "子代理隔离与 worktree 克隆使用的文件系统后端：auto（默认）= 自动选最佳可用；apfs=macOS 克隆、btrfs/zfs=快照克隆、reflink=写时复制、overlayfs=overlay 挂载、projfs=Windows Projected FS、block-clone=块级克隆、rcopy=普通复制兜底（最慢但处处可用）。克隆越快，子代理隔离越便宜。",
     "options": [
       "auto",
       "apfs",
@@ -1482,11 +1482,11 @@
   },
   "launch.enabled": {
     "name": "具名服务监管",
-    "desc": "启用具名 bash 服务与 proc:// 监管：项目级长驻进程（dev server、watcher 等）以名字启动、可经 proc://<name> 查看状态/输出，会话内共享。默认开启。"
+    "desc": "启用具名 bash 服务和 proc:// 监管：项目级长驻进程（dev server、watcher 等）以名字启动，可经 proc://<name> 查看状态和输出，会话内共享。默认开启。"
   },
   "live.voice": {
     "name": "实时语音音色",
-    "desc": "Codex 实时语音会话使用的音色，默认 sol。可选：arbor、breeze、cove、ember、juniper、maple、sol、spruce、vale——各音色的具体听感由 Codex 实时语音服务端定义。仅语音会话使用，不影响文本交互。",
+    "desc": "Codex 实时语音会话使用的音色，默认 sol。可选 arbor、breeze、cove、ember、juniper、maple、sol、spruce、vale——具体听感由 Codex 实时语音服务端定义。仅语音会话使用，不影响文本交互。",
     "options": [
       "arbor",
       "breeze",
@@ -1501,11 +1501,11 @@
   },
   "loop.conditionTimeoutMs": {
     "name": "循环条件超时",
-    "desc": "/loop --while / --until 的条件命令最长等待时间（毫秒），默认 30000；超时视为条件命令损坏并停止循环；0 = 无限等待。防止一个挂死的条件检查把循环卡住。"
+    "desc": "/loop --while / --until 的条件命令最长等待毫秒数，默认 30000；超时视为条件命令故障并停止循环；0 = 无限等待。防止一个挂死的条件检查把循环卡住。"
   },
   "loop.mode": {
     "name": "循环迭代间处理",
-    "desc": "/loop 每次迭代之间、重新提交提示词前做什么：prompt（默认）= 作为 follow-up 消息重新提交（沿用现有上下文）；compact = 先压缩会话上下文再重新提交；reset = 先开一个新会话再重新提交。长循环建议 compact/reset，避免上下文滚雪球。",
+    "desc": "/loop 每次迭代之间、重新提交提示词前做什么：prompt（默认）= 作为追问消息重新提交（沿用现有上下文）；compact = 先压缩会话上下文再提交；reset = 先开一个新会话再提交。长循环建议 compact/reset，避免上下文滚雪球。",
     "options": [
       "prompt",
       "compact",
@@ -1514,7 +1514,7 @@
   },
   "lsp.diagnosticsDeduplicate": {
     "name": "诊断去重",
-    "desc": "编辑后抑制该文件已经显示过的 LSP 诊断，只呈现新增或有变化的诊断。默认 true，避免每次编辑后刷屏同样的警告/错误。"
+    "desc": "编辑后抑制该文件已经显示过的 LSP 诊断，只呈现新增或有变化的。默认 true，避免每次编辑后刷屏同样的警告。"
   },
   "lsp.diagnosticsOnEdit": {
     "name": "编辑后返回诊断",
@@ -1522,47 +1522,47 @@
   },
   "lsp.diagnosticsOnWrite": {
     "name": "写入后返回诊断",
-    "desc": "用 write 工具新建/覆写代码文件后返回 LSP 诊断。默认 true，新文件一落盘就能发现明显问题。"
+    "desc": "用 write 工具新建或覆写代码文件后返回 LSP 诊断。默认 true，新文件一落盘就能发现明显问题。"
   },
   "lsp.enabled": {
     "name": "LSP 代码智能",
-    "desc": "启用 lsp 工具：定义跳转、引用查找、诊断、重命名等语言级代码智能。默认开启。关闭后模型只能靠文本搜索理解代码，重构安全性大幅下降。"
+    "desc": "启用 lsp 工具：定义跳转、引用查找、诊断、重命名等语言级代码智能。默认开启；--no-lsp 可单次禁用。关闭后模型只能靠文本搜索理解代码，重构安全性大幅下降。"
   },
   "lsp.formatOnWrite": {
     "name": "写入后自动格式化",
-    "desc": "代码文件写入后自动经 LSP 格式化。默认 false。开启可保证落盘代码风格统一，但会引入与项目已有格式化工具（prettier 等）叠加的干扰，按项目习惯决定。"
+    "desc": "代码文件写入后自动经 LSP 格式化。默认 false。开启可保证落盘代码风格统一，但可能与项目已有格式化工具（prettier 等）叠加干扰，按项目习惯决定。"
   },
   "lsp.lazy": {
     "name": "语言服务器懒启动",
-    "desc": "语言服务器在首次使用时（调用 lsp 工具或编辑匹配文件类型）才启动，而不是会话启动时全量拉起。默认 true，省内存省启动时间；首次使用某语言时会有少量等待。"
+    "desc": "语言服务器在首次使用时（调用 lsp 工具或编辑匹配类型的文件）才启动，而不是会话启动时全量拉起。默认 true，省内存省启动时间；首次使用某语言时会有少量等待。"
   },
   "lsp.shared": {
     "name": "语言服务器共享",
-    "desc": "经 daemon broker 在多个 omp 实例之间共享同一项目的同一个语言服务器（共享不可用时自动退回各自私有实例）。默认 true，显著降低多窗口并行时的内存占用。"
+    "desc": "经 daemon broker 让多个 omp 实例共享同一项目的同一个语言服务器（共享不可用时自动退回各自私有实例）。默认 true，显著降低多窗口并行时的内存占用。"
   },
   "magicKeywords.enabled": {
     "name": "魔法关键词总开关",
-    "desc": "启用独立关键词的隐藏效果：单独发送 ultrathink / orchestrate / workflowz / jevify 时追加各自的隐藏提示（如 ultrathink 请求最大自动思考）。默认 true；不想要这些隐式触发的可整体关闭。"
+    "desc": "启用独立关键词的隐藏效果：单独发送 ultrathink / orchestrate / workflowz / jevify 时会追加各自的隐藏提示（如 ultrathink 请求最大思考深度）。默认 true；不想要这些隐式触发可整体关闭，也可用下面的分项开关单独禁用某个词。"
   },
   "magicKeywords.jevify": {
     "name": "jevify 关键词",
     "desc": "允许单独输入 jevify 时追加其隐藏的批量判定（bulk-judge）分类提示。默认 true。配合 judge 模型角色做批量分类任务时使用。"
   },
   "magicKeywords.orchestrate": {
-    "name": "编排关键词",
+    "name": "orchestrate 编排词",
     "desc": "允许单独输入 orchestrate 时追加其隐藏的多代理编排提示。默认 true。想让任务自动拆解为多代理并行时使用。"
   },
   "magicKeywords.ultrathink": {
     "name": "ultrathink 关键词",
-    "desc": "允许单独输入 ultrathink 时请求最大自动思考（maximum thinking）并追加其隐藏提示。默认 true。难题卡壳时单独发送 ultrathink 提升推理深度，token 消耗随之上升。"
+    "desc": "允许单独输入 ultrathink 时请求最大程度的自动思考并追加其隐藏提示。默认 true。难题卡壳时单独发这个词可提升推理深度，token 消耗随之上升。"
   },
   "magicKeywords.workflow": {
     "name": "workflowz 关键词",
-    "desc": "允许单独输入 workflowz 时追加其隐藏的 eval 工作流提示。默认 true。"
+    "desc": "允许单独输入 workflowz 时追加其隐藏的 eval 工作流提示，引导模型用 eval 编排多步任务。默认 true。不需要这个隐式触发就关掉。"
   },
   "marketplace.autoUpdate": {
     "name": "插件市场自动更新",
-    "desc": "启动时对插件市场已装插件检查更新：off = 不检查；notify（默认）= 有更新时通知你；auto = 检查到更新直接自动安装。auto 最省心但引入「启动即变更」的风险，求稳定选 notify。",
+    "desc": "启动时检查已装插件的市场更新：off = 不检查；notify（默认）= 有更新时通知你；auto = 检测到更新直接自动安装。auto 最省心但引入「启动即变更」的风险，求稳定选 notify。",
     "options": [
       "off",
       "notify",
@@ -1571,53 +1571,53 @@
   },
   "mcp.enableProjectConfig": {
     "name": "项目级 MCP 配置",
-    "desc": "从项目根目录加载 .mcp.json / mcp.json 里的 MCP 服务器定义（兼容 Claude Code 的项目 MCP 配置格式）。默认 true。团队仓库共享 MCP 配置即靠它；不信任陌生仓库时可关。"
+    "desc": "从项目根目录加载 .mcp.json / mcp.json 里的 MCP 服务器定义（兼容 Claude Code 的项目 MCP 配置格式）。默认 true。团队仓库共享 MCP 配置靠它；不信任陌生仓库时可关。"
   },
   "mcp.notificationDebounceMs": {
     "name": "资源更新去抖窗口",
-    "desc": "MCP 资源更新（resource update）注入对话前的去抖等待（毫秒），默认 500：窗口内的多次更新合并为一次注入，防止高频更新的资源刷屏。"
+    "desc": "MCP 资源更新注入对话前的去抖等待毫秒数，默认 500：窗口内的多次更新合并为一次注入，防止高频更新的资源刷屏。"
   },
   "mcp.notifications": {
     "name": "MCP 资源更新注入",
-    "desc": "把 MCP 服务器的资源更新主动注入 agent 对话（让模型感知订阅资源的变化）。默认 false。开启后资源型 MCP（如监控、文档流）能实时影响会话，代价是额外上下文与打扰。"
+    "desc": "把 MCP 服务器的资源更新主动注入 agent 对话，让模型实时感知订阅资源的变化。默认 false。开启后资源型 MCP（监控、文档流等）能实时影响会话，代价是额外上下文和打扰。"
   },
   "mcp.renderMarkdownResults": {
     "name": "MCP 结果渲染",
-    "desc": "非 JSON 的 MCP 文本结果在转录中按 Markdown 渲染。默认 true，表格/代码块更易读；追求原始输出可关。"
+    "desc": "非 JSON 的 MCP 文本结果在对话记录里按 Markdown 渲染。默认 true，表格和代码块更易读；想看原始输出可关。"
   },
   "mcp.startupTimeoutMs": {
     "name": "MCP 启动发现超时",
-    "desc": "启动时等待 MCP 工具初始发现的毫秒数，默认 250；0 = 一直等到所有连接就绪。MCP 服务器多而慢时启动会被拖住，可调小容忍工具稍后出现。"
+    "desc": "启动时等待 MCP 工具初始发现的毫秒数，默认 250；0 = 一直等到所有连接就绪或失败。MCP 服务器多而慢时启动会被拖住，可调小容忍工具稍后出现。"
   },
   "memories.enabled": {
     "name": "本地记忆管线开关",
     "desc_en": "Master switch of the local memory backend's background pipeline: when on, omp distills saved sessions in the background at startup into memory_summary.md / MEMORY.md etc. and injects Memory Guidance at startup. Default false (the memory subsystem is off by default). Works with memory.backend.",
-    "desc": "local 记忆后端后台管线的总开关：开启后 omp 启动时在后台蒸馏已保存的会话，生成 memory_summary.md / MEMORY.md 等文件并在启动时注入 Memory Guidance。默认 false（memory 子系统整体默认关闭）。与 memory.backend 配合。"
+    "desc": "local 记忆后端后台管线的总开关：开启后 omp 启动时在后台蒸馏已保存的会话，生成 memory_summary.md、MEMORY.md 等文件并在启动时注入 Memory Guidance。默认 false（memory 子系统整体默认关闭）。注意旧版 memories.enabled: true 会自动迁移为 memory.backend: local。"
   },
   "memories.fallbackTokenLimit": {
     "name": "记忆兜底 token 预算",
     "desc_en": "Fallback budget in tokens used by the memory pipeline when the model declares no context window, default 16000; normally computed from the model window, this only covers missing metadata.",
-    "desc": "所用模型没有声明上下文窗口大小时，记忆管线使用的兜底预算，默认 16000 token。正常情况下按模型窗口自动计算，此值只在缺失元数据时兜底。"
+    "desc": "所用模型没有声明上下文窗口大小时，记忆管线使用的兜底预算，默认 16000 token。正常按模型窗口自动计算，此值只在缺失元数据时兜底。"
   },
   "memories.maxRawMemoriesForGlobal": {
     "name": "合并输入条数上限",
     "desc_en": "Cap on raw session memories entering the consolidation stage, default 200; excess is excluded so consolidation calls cannot balloon; larger is more thorough but costlier and slower.",
-    "desc": "进入合并（consolidation）阶段的原始会话记忆条数上限，默认 200。超出部分不参与合并，防止合并调用无限膨胀；调大合并更全面但更贵更慢。"
+    "desc": "进入合并（consolidation）阶段的逐会话原始记忆条数上限，默认 200。超出部分不参与合并，防止合并调用无限膨胀；调大合并更全面但更贵更慢。"
   },
   "memories.maxRolloutAgeDays": {
     "name": "会话最大年龄天数",
     "desc_en": "The memory pipeline ignores sessions older than this many days (default 30) — very old sessions never join distillation, which is why old history does not apply right after first enabling local memory; raise it to include older history.",
-    "desc": "记忆管线忽略超过该天数（默认 30）的旧会话——太久远的会话不参与蒸馏。首次开启 local 记忆时老会话不生效即因此；调大可纳入更久历史。"
+    "desc": "记忆管线忽略超过这个天数（默认 30）的旧会话——太久远的会话不参与蒸馏。首次开启 local 记忆时老会话不生效即因此；调大可纳入更久历史。"
   },
   "memories.maxRolloutsPerStartup": {
     "name": "单次启动处理上限",
     "desc_en": "Maximum sessions (rollouts) distilled per startup, default 64 (this machine: 16); caps background work per launch so enabling memories does not cause a long heavy startup — the rest continue on later launches.",
-    "desc": "每次启动最多处理的待蒸馏会话（rollout）数量，默认 64（本机已改为 16）。限制单次启动的后台工作量，避免开启初期长时间高负载；剩余会话留到后续启动继续。"
+    "desc": "每次启动最多处理的待蒸馏会话（rollout）数量，默认 64（本机已改为 16）。限制单次启动的后台工作量，避免刚开启时长时间高负载；剩余会话留到后续启动继续。"
   },
   "memories.minRolloutIdleHours": {
     "name": "会话最小闲置小时",
     "desc_en": "Sessions touched within this many hours (default 12) count as still active and are skipped, preventing in-progress work from being frozen into memory prematurely; smaller updates memories sooner but may capture half-finished work.",
-    "desc": "距现在不足该小时数（默认 12）的会话视为仍活跃，跳过不蒸馏。防止把正在进行的工作过早固化成记忆；调小记忆更新更及时但可能抓到半成品。"
+    "desc": "距现在不足这个小时数（默认 12）的会话视为仍活跃，跳过不蒸馏。防止把正在进行的工作过早固化成记忆；调小记忆更新更及时但可能抓到半成品。"
   },
   "memories.phase1InputTokenLimit": {
     "name": "单会话抽取输入上限",
@@ -1627,17 +1627,17 @@
   "memories.phase2HeartbeatSeconds": {
     "name": "合并租约心跳秒数",
     "desc_en": "Heartbeat interval in seconds for stage-2 (consolidation) leases, default 30 — heartbeats prove a task is alive so other processes do not take it over as timed out. Usually untouched.",
-    "desc": "阶段 2（合并）任务租约的心跳间隔（秒），默认 30：心跳证明任务还活着，防止被其他进程误判超时接管。一般不动。"
+    "desc": "阶段 2（合并）任务租约的心跳间隔秒数，默认 30：心跳证明任务还活着，防止被其他进程误判超时接管。一般不动。"
   },
   "memories.phase2LeaseSeconds": {
     "name": "合并任务租约秒数",
     "desc_en": "Lease duration in seconds for stage-2 (consolidation) tasks, default 180; leases coordinate which process consolidates under multi-process concurrency, avoiding duplicate work.",
-    "desc": "阶段 2（合并）任务的租约时长（秒），默认 180。多进程并发跑记忆管线时用租约协调谁做合并，避免重复劳动。"
+    "desc": "阶段 2（合并）任务的租约时长秒数，默认 180。多进程并发跑记忆管线时用租约协调谁做合并，避免重复劳动。"
   },
   "memories.phase2RetryDelaySeconds": {
     "name": "合并重试延迟秒数",
     "desc_en": "Wait in seconds before retrying a failed stage-2 (consolidation) task, default 180; pairs with phase2LeaseSeconds; rarely needs changing.",
-    "desc": "阶段 2（合并）任务失败后的重试等待时间（秒），默认 180。与 phase2LeaseSeconds 配合构成合并任务的失败恢复节奏；一般无需修改。"
+    "desc": "阶段 2（合并）任务失败后的重试等待秒数，默认 180。与 phase2LeaseSeconds 配合构成合并任务的失败恢复节奏，一般无需修改。"
   },
   "memories.rolloutPayloadPercent": {
     "name": "会话载荷占比",
@@ -1652,12 +1652,12 @@
   "memories.stage1LeaseSeconds": {
     "name": "抽取任务租约秒数",
     "desc_en": "Lease duration in seconds for stage-1 extraction tasks, default 120 — how concurrent processes claim tasks and take them over on timeout.",
-    "desc": "阶段 1 抽取任务的租约时长（秒），默认 120，用于多进程并发时的任务认领与超时接管。"
+    "desc": "阶段 1 抽取任务的租约时长秒数，默认 120。多个 omp 进程并发跑记忆管线时靠租约认领任务、超时后让别人接管；单机使用无需修改。"
   },
   "memories.stage1RetryDelaySeconds": {
     "name": "抽取重试延迟秒数",
     "desc_en": "Wait in seconds before retrying a failed stage-1 (per-session extraction) task, default 120; together with stage1LeaseSeconds it forms the failure-recovery rhythm of extraction.",
-    "desc": "阶段 1（逐会话抽取）任务失败后的重试等待时间（秒），默认 120。与 stage1LeaseSeconds 配合构成抽取任务的失败恢复节奏。"
+    "desc": "阶段 1（逐会话抽取）任务失败后的重试等待秒数，默认 120。与 stage1LeaseSeconds 配合构成抽取任务的失败恢复节奏。"
   },
   "memories.summaryInjectionTokenLimit": {
     "name": "注入摘要 token 上限",
@@ -1667,11 +1667,11 @@
   "memories.threadScanLimit": {
     "name": "会话扫描条数上限",
     "desc_en": "Maximum number of recent session records scanned when the memory pipeline starts, default 300; bounds startup cost when history is huge.",
-    "desc": "记忆管线启动时最多扫描的最近会话记录条数，默认 300。极多历史会话时限制扫描范围，控制启动开销。"
+    "desc": "记忆管线启动时最多扫描的最近会话记录条数，默认 300。历史会话极多时用来限制扫描范围、控制启动开销；一般无需修改。"
   },
   "memory.backend": {
     "name": "记忆后端",
-    "desc": "跨会话记忆子系统选择：off（默认）= 无记忆处理；local = 本地摘要管线（生成 memory_summary.md，按工作目录隔离）；mnemopi = 本地 SQLite 可检索记忆库（提示驱动的 remember/recall/forget）；hindsight = Vectorize Hindsight 远程记忆服务（自动留存开启时会话文本离开本机）；sharpshooter = 另一内置后端。选 hindsight/mnemopi 时注意隐私与模型调用费用；关闭后端不会删除其已存数据。",
+    "desc": "跨会话记忆子系统选哪个后端：off（默认）= 不做记忆处理；local = 本地摘要管线（生成 memory_summary.md，按工作目录隔离）；mnemopi = 本地 SQLite 可检索记忆库（recall/retain 工具驱动）；hindsight = Vectorize Hindsight 远程记忆服务（自动留存开启时会话文本离开本机）；sharpshooter = 内置的项目决策文件后端。选 hindsight/mnemopi 注意隐私和模型调用费；关后端不删已存数据。",
     "options": [
       "off",
       "local",
@@ -1682,69 +1682,69 @@
   },
   "minP": {
     "name": "minP 采样参数",
-    "desc": "采样参数 minP：0–1 之间的概率截断阈值（低于 max 概率该比例的候选被剪掉）；-1（默认）= 不设置、用提供商默认值。是否生效取决于端点是否支持 minP（部分本地/自定义端点支持，多数托管 API 忽略）。"
+    "desc": "采样参数 minP：0–1 之间的概率截断阈值（低于最高概率该比例的候选词被剪掉）；-1（默认）= 不发送此参数、用提供商默认值。是否生效取决于端点是否支持 minP——部分本地/自定义端点支持，多数托管 API 忽略。"
   },
   "mnemopi.autoRecall": {
     "name": "Mnemopi 自动召回",
-    "desc": "每个会话的第一个回合自动从 Mnemopi 本地记忆库召回相关记忆。默认 true。关闭后记忆只在对话里显式要求 recall 时使用。"
+    "desc": "每个会话的第一个回合自动从 Mnemopi 本地记忆库召回相关记忆。默认 true。关闭后记忆只在对话里显式调用 recall 时使用。"
   },
   "mnemopi.autoRetain": {
     "name": "Mnemopi 自动留存",
-    "desc": "已完成的对话回合自动留存进本地 Mnemopi 记忆库。默认 true。留存内容存本地 SQLite；注意默认 llmMode 下抽取仍会调用你配置的模型（费用+），隐私敏感可关或配 llmMode: none。"
+    "desc": "已完成的对话回合自动留存进本地 Mnemopi 记忆库。默认 true。内容存本地 SQLite；注意默认 llmMode 下做抽取仍会调用你配置的模型（费用+），隐私敏感可关或把 llmMode 设为 none。"
   },
   "mnemopi.bank": {
     "name": "Mnemopi 共享库名",
-    "desc": "可选的共享 bank 基础名，默认未设置（用 default）。per-project 等范围模式会从它派生项目专属库名；想跨会话统一管理多个库时设置。"
+    "desc": "可选的共享记忆库基础名，默认未设置（即用名为 default 的共享库）。per-project 等范围模式会从这个基础名派生各项目专属库（目录基名 + 绝对路径哈希）；想跨项目统一管理多个库时设置。"
   },
   "mnemopi.dbPath": {
     "name": "Mnemopi 数据库路径",
-    "desc": "Mnemopi 的 SQLite 数据库文件路径，可选；默认放在 agent memories 目录（~/.omp/agent/memories/ 下）。想把记忆库放到别的盘/同步盘时设置。"
+    "desc": "Mnemopi 的 SQLite 数据库文件路径，可选；默认放在 agent 记忆目录下的 mnemopi 目录（mnemopi.db）。想把记忆库放到别的盘或同步盘时设置。"
   },
   "mnemopi.debug": {
     "name": "记忆调试日志",
     "desc_en": "Debug logging switch for the Mnemopi memory backend; logs database, embedding model and LLM extraction details, handy for diagnosing memories not written or not recalled; noisier logs — turn it back off after troubleshooting. Default false.",
-    "desc": "Mnemopi 记忆后端的调试日志开关。开启后记录数据库、嵌入模型与 LLM 抽取的运行细节，便于排查「记忆不写入/不召回」类问题；日志更啰嗦，排障后建议关回。默认 false。"
+    "desc": "Mnemopi 记忆后端的调试日志开关，记录后端失败等运行细节。默认 false。排查「记忆不写入/不召回」时打开；日志较啰嗦，排障后建议关回。"
   },
   "mnemopi.embeddingApiKey": {
-    "name": "嵌入接口密钥",
-    "desc": "传给 Mnemopi 嵌入（embedding）端点的 API 密钥，与 mnemopi.embeddingApiUrl 搭配，用于自定义 OpenAI 兼容嵌入服务的鉴权。留空用环境变量或内置默认。属凭据类配置，勿写进会提交的项目文件。默认空。"
+    "name": "Mnemopi 嵌入 API 密钥",
+    "desc": "Mnemopi（本地记忆后端）调用嵌入端点时要带的 API 密钥，配合 mnemopi.embeddingApiUrl 一起用；只在配置了远程嵌入端点时才需要填，用本地嵌入模型可以留空。属于凭据，建议放在全局配置而不要提交进项目仓库。默认留空。注意整组 mnemopi.* 设置仅在 memory.backend 选为 mnemopi 时才生效。"
   },
   "mnemopi.embeddingApiUrl": {
-    "name": "嵌入端点地址",
-    "desc": "自定义的 OpenAI 兼容嵌入（embedding）端点 URL。设置后 Mnemopi 不再用本地嵌入模型，而是把记忆向量化请求发到该地址；配合 embeddingApiKey 鉴权。留空用本地模型/环境默认。默认空。"
+    "name": "Mnemopi 嵌入端点地址",
+    "desc": "让 Mnemopi 把记忆文本转向量时调用的 OpenAI 兼容嵌入接口地址（embedding 即把文字变成向量、用于语义检索）。设置后记忆检索走你指定的服务（自建的 ollama/OpenAI 兼容网关等）；留空则走内置默认嵌入方案。配合 mnemopi.embeddingApiKey 鉴权，仅在 memory.backend=mnemopi 时生效。默认留空。"
   },
   "mnemopi.embeddingModel": {
-    "name": "嵌入模型覆盖",
-    "desc": "高级项：显式指定嵌入模型 id，优先于 embeddingVariant 的档位选择。仅在需要精确控制向量化模型（如与已有库对齐）时设置；留空则按 embeddingVariant 使用对应默认模型。默认空。"
+    "name": "Mnemopi 嵌入模型",
+    "desc": "高级项：直接指定嵌入模型的模型 ID，填了之后会盖过 mnemopi.embeddingVariant 选择的模型族。只在需要和已有向量库精确对齐、或自定义端点只认特定模型名时才填；一般留空交给 embeddingVariant 即可。默认留空。"
   },
   "mnemopi.embeddingVariant": {
-    "name": "嵌入模型族",
-    "desc": "本地嵌入模型族选择。en=英文能力更强的模型；multilingual=跨语言模型（中文记忆召回更准）。切换后下次启动会重建全部已有记忆的向量，耗时且费 token（远程嵌入时）。默认 en。",
+    "name": "Mnemopi 嵌入模型族",
+    "desc": "Mnemopi 内置本地嵌入模型选哪一族：en 是英文更强的模型，multilingual 是跨语言模型，中文为主的记忆建议选 multilingual。改了这个值后，下次启动会把已有记忆的向量全部重建（本地重建免费但要点时间）。默认 en。注意改了模型族但没重建前召回质量会掉。",
     "options": [
       "en",
       "multilingual"
     ]
   },
   "mnemopi.enhancedRecall": {
-    "name": "召回结果缓存",
-    "desc": "对相同及相似查询（且选项一致）的召回结果做缓存，任何一次记忆写入都会清空缓存。重复提问时省去重复检索，更快也更省；代价是刚写入的记忆可能晚一轮才出现。默认 false。"
+    "name": "Mnemopi 召回缓存",
+    "desc": "开启后对完全相同或高度相似且选项一致的召回查询缓存结果，重复提问时直接命中缓存、省掉一次检索；任何一次记忆写入都会清空缓存防止过期。代价是刚写入的记忆可能要下一轮才浮现。默认 false。"
   },
   "mnemopi.injectionTokenLimit": {
-    "name": "记忆注入预算",
+    "name": "Mnemopi 记忆注入预算",
     "desc_en": "Approximate token budget for memory content injected into context per call, truncated beyond; larger = fuller recall but crowds the working context, smaller saves context but may drop key memories. Default 5000.",
-    "desc": "每次注入上下文的记忆内容近似 token 预算，超出部分截断。调大→召回内容更全但挤占正文上下文；调小→省上下文但可能丢关键记忆。默认 5000。"
+    "desc": "每次往对话上下文里注入的召回记忆最多占多少 token（token 可理解为计费/长度单位，约 0.75 个英文单词或半个汉字）。超出就截断。调大召回更全但挤占上下文、每轮更费钱；调小省 token 但可能丢关键记忆。默认 5000。"
   },
   "mnemopi.llmApiKey": {
-    "name": "远程LLM密钥",
-    "desc": "Mnemopi 远程模式（llmMode: remote）所用 LLM 端点的 API 密钥，与 llmBaseUrl/llmModel 搭配。留空用环境变量或内置默认。属凭据类配置，注意保密。默认空。"
+    "name": "Mnemopi 远程 LLM 密钥",
+    "desc": "mnemopi.llmMode 设为 remote 时，访问远程 LLM 端点所需的 API 密钥，配合 llmBaseUrl、llmModel 使用。其余模式下不需要。凭据类配置，别提交进项目仓库。默认留空。"
   },
   "mnemopi.llmBaseUrl": {
-    "name": "远程LLM地址",
-    "desc": "Mnemopi 远程模式的 OpenAI 兼容 LLM 端点 URL，仅在 llmMode: remote 时生效。用于让记忆抽取/改写走自选的模型服务（本地或第三方）。留空用环境变量或内置默认。默认空。"
+    "name": "Mnemopi 远程 LLM 地址",
+    "desc": "mnemopi.llmMode=remote 时使用的 OpenAI 兼容 LLM 端点 URL，例如自建的 ollama、vLLM 或第三方兼容网关。仅在 remote 模式下生效，配合 llmApiKey、llmModel。默认留空。"
   },
   "mnemopi.llmMode": {
-    "name": "记忆LLM模式",
-    "desc": "记忆抽取/整理用什么 LLM。none=完全不用 LLM（纯规则+FTS，最省且隐私最好，但抽取质量下降）；smol=用在线的 tiny/smol 角色模型（默认，效果好但会外发对话片段到该供应商）；remote=用下方远程端点。默认 smol。",
+    "name": "Mnemopi 记忆抽取 LLM 模式",
+    "desc": "记忆的抽取/改写用哪个模型：none=完全不用 LLM，最省且不把对话发出去，但抽取质量差；smol=用在线小模型（/models 里 tiny 角色，解析不到就用 smol 角色），效果好但会把对话片段发给该供应商；remote=用你自己配的 OpenAI 兼容端点（配合 llmBaseUrl 等）。默认 smol。注重隐私可选 none 或 remote+自建端点。",
     "options": [
       "none",
       "smol",
@@ -1752,44 +1752,44 @@
     ]
   },
   "mnemopi.llmModel": {
-    "name": "远程LLM模型",
-    "desc": "Mnemopi 远程模式使用的模型名，仅在 llmMode: remote 时生效，配合 llmBaseUrl/llmApiKey。留空用端点默认模型。默认空。"
+    "name": "Mnemopi 远程 LLM 模型",
+    "desc": "remote 模式下具体用哪个模型名（如 qwen2.5:7b 之类，按你端点支持的填）。仅在 llmMode=remote 时生效。留空通常用端点默认模型。默认留空。"
   },
   "mnemopi.noEmbeddings": {
-    "name": "纯全文检索",
-    "desc": "强制只用确定性全文检索（FTS）召回，不做向量嵌入。优点：不下载/不运行嵌入模型、结果可复现、隐私最好；缺点：同义不同词的记忆召回不到。排查嵌入问题时也可用它隔离故障。默认 false。"
+    "name": "Mnemopi 纯全文检索",
+    "desc": "开启后强制只用确定性全文检索（FTS，即按关键词匹配）召回记忆，不做向量语义匹配。好处：不加载嵌入模型、结果可复现、无外部依赖；坏处：说法不同但语义相近的记忆召不回。嵌入模型出问题时也可以用它隔离故障。默认 false。"
   },
   "mnemopi.polyphonicRecall": {
-    "name": "多路融合召回",
-    "desc": "开启后召回融合图、事实、向量、时间多路信号，相关联的记忆即使没有关键词匹配也能浮现，召回更全。代价：检索更慢、计算更多。默认 false。"
+    "name": "Mnemopi 多路融合召回",
+    "desc": "召回时同时融合情景图、事实、向量、时间等多个信号源，让语义相关的记忆即使没有关键词命中也能被找到，召回更全。代价是检索更重、更慢。记忆库大了后建议开。默认 false。"
   },
   "mnemopi.proactiveLinking": {
-    "name": "主动关联建图",
-    "desc": "新记忆入库时即时做情景图（episodic graph）链接，把记忆与相关实体/旧记忆连起来，服务于多路召回与关联浮现。会增加写入时的处理开销。默认 false。"
+    "name": "Mnemopi 主动关联建图",
+    "desc": "新记忆写入时即时把它接入情景图，和相关实体、旧记忆建立链接，供多路召回（polyphonicRecall）使用。会增加每次写入的处理开销。与 polyphonicRecall 搭配收益最大。默认 false。"
   },
   "mnemopi.recallContextTurns": {
-    "name": "召回上下文轮数",
+    "name": "Mnemopi 召回上下文轮数",
     "desc_en": "How many recent user messages accompany the recall query as context, making recall better fit the current topic; 0 = current message only; larger is more accurate but the query grows. Default 3.",
-    "desc": "构造召回查询时，附带最近几轮用户消息作为上下文，让召回更贴合当前话题。0=只用当前消息。调大→召回更准但查询更长。默认 3。"
+    "desc": "构造召回查询时附带最近几轮用户消息当上下文，让召回贴合当前话题而不是只看孤零零一句。0 表示只用当前消息。调大召回更准但查询更长。默认 3。"
   },
   "mnemopi.recallLimit": {
-    "name": "召回条数上限",
+    "name": "Mnemopi 召回条数上限",
     "desc_en": "Maximum number of memory entries injected per recall; larger = fuller memory in context but more crowded and token-hungry, smaller keeps only the most relevant few. Default 8.",
-    "desc": "单次召回最多注入的记忆条数。调大→上下文里的记忆更全但更挤、更费 token；调小→只保留最相关的几条。默认 8。"
+    "desc": "单次召回最多往上下文里塞多少条记忆。调大记忆更全但更占上下文、更费 token；调小只留最相关的几条。默认 8。"
   },
   "mnemopi.recallMaxQueryChars": {
-    "name": "召回查询长度",
+    "name": "Mnemopi 召回查询长度上限",
     "desc_en": "Maximum length in characters of the combined recall query, truncated beyond; prevents stuffing an over-long conversation into the retrieval query. Rarely needs changing. Default 4000.",
-    "desc": "组合后的召回查询字符串最大长度（字符），超出截断。防止把超长对话整段塞进检索查询。一般不必改。默认 4000。"
+    "desc": "拼接好的召回查询字符串最多多少字符，超出截断，防止把超长对话整段当查询。一般用默认即可。默认 4000。"
   },
   "mnemopi.retainEveryNTurns": {
-    "name": "自动记忆间隔",
+    "name": "Mnemopi 自动记忆间隔",
     "desc_en": "Minimum interval in user turns between automatic retains: memory is written automatically only every N user turns; smaller = timelier but costlier extraction, larger = cheaper but may miss things. Default 4.",
-    "desc": "自动保留（retain）对话的最小用户轮数间隔：每 N 个用户轮次才自动写入一次记忆。调小→记忆更及时但抽取开销大；调大→更省但可能漏记。默认 4。"
+    "desc": "每隔多少个用户轮次自动把对话写入一次记忆（retain）。调小记忆更及时但每次写入要跑一次抽取、更耗资源；调大更省但可能漏记。默认 4。"
   },
   "mnemopi.scoping": {
-    "name": "记忆库范围",
-    "desc": "记忆库的隔离范围。global=所有项目共用一个库（跨项目可见）；per-project=按工作目录隔离，每项目独立（默认，客户项目等硬边界场景推荐）；per-project-tagged=写入项目库，但召回时合并全局库（方便但有串味风险）。注意改范围不删除旧数据。",
+    "name": "Mnemopi 记忆库范围",
+    "desc": "记忆库的隔离粒度：global=所有项目共用一个记忆库；per-project=按当前工作目录隔离，每个项目独立（默认，适合客户项目等需要硬隔离的场景）；per-project-tagged=写入项目本地库但召回时合并全局记忆。改范围不会迁移或删除已有数据。",
     "options": [
       "global",
       "per-project",
@@ -1798,41 +1798,41 @@
   },
   "model.loopGuard.checkAssistantContent": {
     "name": "循环检测含正文",
-    "desc": "Loop Guard 除检测思考流外，也把助手正文消息纳入循环检测。开着能在模型反复复读正文时尽早打断；若正文里合法地出现重复模式（如逐条输出）导致误判可关。默认 true。"
+    "desc": "循环防护除了盯思考流，也检查助手正文的复读式输出。开着能在模型反复输出同一段话时更早打断止损；若正文里本就需要重复模式（如逐条列举）被误伤，可以关掉。默认 true。仅在 model.loopGuard.enabled 开启时有意义。"
   },
   "model.loopGuard.enabled": {
-    "name": "流循环检测",
-    "desc": "自动检测模型流式输出（思考与正文）中的循环：发现重复模式即中断流，避免 token 在无限复读中烧掉。模型抽风长跑时能直接止损。默认 true，一般保持。"
+    "name": "流式循环检测",
+    "desc": "自动检测模型流式输出里的死循环：发现重复模式就中断该次流，避免 token 在无限复读里烧掉。模型抽风时这是直接止损开关。默认 true，建议保持。"
   },
   "model.loopGuard.toolCallReminder": {
-    "name": "提醒发起工具调用",
-    "desc": "Gemini 系推理流连续输出大量规划头却迟迟不调工具时，打断并注入「请发起工具调用」的提醒。依赖 Loop Guard（model.loopGuard.enabled）开启。专治 Gemini 只规划不干活。默认 true。"
+    "name": "规划头循环提醒",
+    "desc": "当 Gemini 系推理流连续输出大量「规划标题」却迟迟不调用工具时，打断它并注入「请发起工具调用」的提醒。专治 Gemini 只规划不干活。依赖 model.loopGuard.enabled。默认 true。"
   },
   "model.toolCallLoopGuard.enabled": {
     "name": "跨轮同调用检测",
-    "desc": "跨轮次检测连续完全相同的工具调用，超过阈值时注入纠正性引导（steer），防止模型反复撞同一堵墙。默认 true。"
+    "desc": "检测跨轮次连续出现完全相同的工具调用，超过阈值就向模型注入纠偏引导，防止它反复撞同一堵墙（比如反复读同一个文件同一区间）。默认 true。"
   },
   "model.toolCallLoopGuard.exemptTools": {
-    "name": "豁免工具列表",
-    "desc": "允许连续重复调用而不触发跨轮循环检测的工具名单。默认 [\"wait\"]——轮询等待类工具天然会连续重复。把其他合法重复的工具（如轮询 proc://）加进来可避免误报。"
+    "name": "循环检测豁免工具",
+    "desc": "允许连续重复调用而不触发跨轮循环检测的工具名单。轮询类工具（默认含 wait，它天生要反复调）适合放这里；把你自己的合法重复工具加进来可避免误报。默认 [\"wait\"]。"
   },
   "model.toolCallLoopGuard.threshold": {
     "name": "同调用阈值",
-    "desc": "连续多少次完全相同的工具调用后注入纠正提醒。默认 5。调小→更快打断但易误伤合法重试；调大→更宽容但浪费更多。"
+    "desc": "连续多少次完全相同的工具调用之后才注入纠偏提醒。默认 5。调小更早打断但容易误伤正常重试；调大更宽容但浪费更多 token。"
   },
   "modelPresets": {
     "name": "模型预设组合",
     "desc_en": "Named presets bundling a set of modelRoles plus a default thinking level into one switchable preset (names limited to safe characters); handy to flip between a work configuration and a review configuration. Empty object by default.",
-    "desc": "命名预设：把一组 modelRoles（模型角色分配）+ 默认思考档位打包成一个可切换的预设（名称仅限字母等安全字符）。适合在「干活配置/审查配置」间一键切换。默认空对象（无自定义预设）。"
+    "desc": "命名预设：把一组 modelRoles（角色-模型分配）外加可选的 defaultThinkingLevel 打包成一个可整体切换的配置，比如在「省钱干活档」和「强力审查档」之间一键切换。格式为 {名称: {modelRoles: {...}, defaultThinkingLevel: \"...\"}}，名称需以字母开头。项目层同名预设优先于全局。默认空。"
   },
   "modelProviderOrder": {
     "name": "供应商排序",
     "desc_en": "Array setting the display/sort priority of providers in the model picker (/model browser), arranging provider groups in this order. Empty by default = built-in order; set it to surface your favorite providers first.",
-    "desc": "模型选择器（/model 浏览器）中供应商的展示/排序优先级数组，按此顺序排列供应商分组。默认空数组=用内置顺序。想让常用供应商排前面时配置。"
+    "desc": "模型选择器（/model）里供应商分组的展示顺序，数组里靠前先显示。空数组=用内置顺序。想让常用供应商排前面就填，例如 [\"anthropic\",\"openai-codex\"]。默认空。"
   },
   "modelRoleStorage": {
-    "name": "角色保存位置",
-    "desc": "在模型选择器里改角色分配时保存到哪。global=存全局配置，所有项目共享（默认）；project=存当前项目 .omp/config.yml 的 modelRoles（仅改这一项会写项目层，缺失的角色仍回退全局）。团队/项目差异化配置用 project。",
+    "name": "角色分配保存位置",
+    "desc": "在模型选择器里改角色分配时写到哪一层：global=写全局配置，所有项目共享（默认）；project=写当前项目的 .omp/config.yml 里的 modelRoles，仅这一项写项目层，缺的角色仍回退全局。团队/项目想用不同模型配置时选 project。",
     "options": [
       "global",
       "project"
@@ -1841,24 +1841,24 @@
   "modelRoles": {
     "name": "模型角色分配",
     "desc_en": "Which model each role (default/smol/slow/plan/vision/tiny/task/commit/web, etc.) binds to, shaped like \"role\": \"provider/model-id\". Roles decide which model serves each scenario — commit uses a fast model, default is the main one. See /models or `omp --list-models` for options; this is the core cost-and-speed configuration.",
-    "desc": "各角色（default/smol/slow/plan/vision/tiny/task/commit/web 等）绑定哪个模型，形如 \"角色\": \"provider/model-id\"。角色影响对应场景用哪个模型：如 commit 用快模型、default 决定主力。可用 /models 或 omp --list-models 查可用模型。影响费用与速度的核心配置。"
+    "desc": "给每个用途角色绑定哪个模型，格式为 {\"角色\": \"provider/model-id\"}，比如 default（主力对话）、smol（轻量杂活）、vision（看图）、commit（写提交信息）、advisor（顾问审查）等。角色分配直接决定每个场景用哪个模型，是控制费用和速度最核心的配置。可用 /models 或 omp --list-models 查可填的模型。默认空对象（用内置默认）。"
   },
   "modelTags": {
     "name": "模型显示标签",
     "desc_en": "Custom display name and color per model, shaped like {\"provider/model\": {\"name\": \"alias\", \"color\": \"#hex\"}}; tag keys also appear as recognizable entries in pickers. Display only — never changes which model is actually called. Empty object by default.",
-    "desc": "给某模型自定义显示名与颜色（形如 {\"provider/model\": {\"name\": \"别名\", \"color\": \"#hex\"}}），标签键还会作为选择器里的可辨识条目。仅影响显示与挑选体验，不改变实际调用的模型。默认空对象。"
+    "desc": "给某个模型自定义显示名和颜色，形如 {\"provider/model\": {\"name\": \"别名\", \"color\": \"#hex\"}}。标签会出现在选择器里方便辨认。只影响显示，不改变实际调用的模型。默认空对象。"
   },
   "omitThinking": {
-    "name": "完全省略思考",
-    "desc": "要求支持的供应商在响应里完全不返回思考摘要（不只是界面隐藏）。省上下文与流量，但也让模型失去跨轮参考自己思考的载体，且依赖供应商支持；不支持的供应商无效果。默认 false。"
+    "name": "完全省略思考摘要",
+    "desc": "要求支持的供应商在响应里完全不返回思考摘要（不只是界面上不显示）。省上下文和流量，但模型也失去跨轮参考自己思考的载体，推理能力略有损失；不支持的供应商设置无效。默认 false。只想眼不见为净请用 hideThinkingBlock 而不是这个。"
   },
   "paste.largeMenuThreshold": {
     "name": "大粘贴菜单阈值",
-    "desc": "粘贴达到该行数时弹出菜单：包成代码块/包成 XML 标签/存为文件。0=禁用菜单（大粘贴仍折叠为 [Paste] 标记）。调大→更少打扰；调小→更早给整理选项。默认 100。"
+    "desc": "粘贴超过这个行数时弹出菜单，可选「包成代码块 / 包成 XML 标签 / 存成文件」。0=禁用菜单（大粘贴仍会折叠为 [Paste] 标记不占屏）。调大减少打扰，调小更早给整理选项。默认 100。"
   },
   "personality": {
     "name": "语气人格",
-    "desc": "渲染进系统提示 personality 块的沟通风格。default=默认工程风格；friendly=更亲和；pragmatic=更直给结果；none=不注入人格块（最省 token）。只影响文风，不影响能力。默认 default。",
+    "desc": "写进系统提示 personality 块的沟通风格：default=默认工程风格；friendly=更亲和热情；pragmatic=更直给结果；none=不注入人格块（最省 token）。只影响文风不影响能力。默认 default。",
     "options": [
       "default",
       "friendly",
@@ -1868,23 +1868,23 @@
   },
   "plan.autosave": {
     "name": "计划自动保存",
-    "desc": "计划模式完成（计划被批准）时自动把计划写到磁盘。配合 autosaveDir 指定目录，留空存 <项目>/.omp/plans/。方便留存审阅与复用计划；不想留痕就关。默认 false。"
+    "desc": "计划模式产出的计划被批准时自动写到磁盘，方便留存审阅和复用。配合 plan.autosaveDir 指定目录，留空存到 <项目>/.omp/plans/。不想留文件就保持关闭。默认 false。"
   },
   "plan.autosaveDir": {
     "name": "计划保存目录",
-    "desc": "自动保存计划的目录，支持 ~、绝对路径与相对 cwd 路径。留空用 <项目>/.omp/plans/。仅在 plan.autosave 开启时有意义。默认空。"
+    "desc": "自动保存计划的目录，支持 ~、绝对路径和相对当前工作目录的路径；留空用 <项目>/.omp/plans/。仅在 plan.autosave 开启时有意义。默认留空。"
   },
   "plan.defaultOnStartup": {
-    "name": "启动即计划模式",
-    "desc": "每个新会话开始时自动进入计划模式（只读探索与规划，批准后才执行）。适合先审后动的谨慎工作流；习惯直接开干的人会觉得每次都要退出很烦。默认 false。"
+    "name": "启动即进计划模式",
+    "desc": "每个新会话开始时自动进入计划模式（先只读探索、出计划、批准后才动手）。适合谨慎工作流；习惯直接开干的人会觉得每次都要退出很麻烦。默认 false。"
   },
   "plan.enabled": {
     "name": "计划模式开关",
-    "desc": "是否提供计划模式：执行前先只读探索并产出计划待你批准。关闭后 /plan 不可用、无法进入该模式。需要强审批流时保留，追求极简可关。默认 true。"
+    "desc": "是否提供计划模式：执行前让 agent 先只读探索并产出计划待你批准，是安全阀。关闭后无法用 /plan 进入该模式。默认 true，建议保留。"
   },
   "power.sleepPrevention": {
     "name": "防休眠级别",
-    "desc": "会话活跃期间阻止系统休眠，逐级累加（含低级效果）。off=不干预；idle=仅阻止空闲休眠（默认）；display=再保持屏幕常亮；system=最强，阻止系统睡眠。长时间跑任务建议至少 idle；笔记本开 display/system 费电。",
+    "desc": "会话活跃期间阻止系统休眠，级别逐级累加：off=不干预；idle=只阻止空闲休眠（默认）；display=再保持屏幕常亮；system=最强，阻止系统级睡眠。长时间跑任务建议至少 idle；笔记本开 display/system 会明显费电。",
     "options": [
       "off",
       "idle",
@@ -1894,19 +1894,19 @@
   },
   "presencePenalty": {
     "name": "存在惩罚",
-    "desc": "对已出现过的 token 再出现施加惩罚，降低复读、鼓励新内容；过高会导致用词漂移、代码标点残缺。-1=用供应商默认（默认值），其余按各 API 的语义传值。一般不动，只在与采样类参数联调时改。"
+    "desc": "对已经出现过的 token 再出现施加惩罚，降低复读、鼓励新内容；过高会让模型用词漂移、代码符号残缺。-1=用供应商默认（默认值），其余值按各 API 语义原样传递。只在与 temperature 等采样参数联调时才需要动。"
   },
   "prewalk.enabled": {
     "name": "预走交接",
-    "desc": "会话先以主力模型开工：在计划提示的 todo 清单建立后的首次编辑/写入前，切换到快而便宜的角色（默认 smol）继续干活——强模型负责规划、提交 todo 并起个头，然后交棒。省钱利器，代价是实施质量取决于接棒模型。可被 --prewalk/--no-prewalk 按次覆盖。默认 false。"
+    "desc": "会话先用主力模型开工：在计划提示的待办清单建好后的首次编辑/写入时，交棒给快而便宜的角色（默认 smol）继续干活——强模型负责规划并起头，便宜模型负责实施。省钱利器，代价是实施质量取决于接棒模型。可用 --prewalk/--no-prewalk 按会话覆盖。默认 false。"
   },
   "proseOnlyThinking": {
     "name": "思考摘要去代码",
-    "desc": "思考摘要中的代码块以省略号替代，只保留散文部分。思考块通常很长且代码占大头，去掉后上下文更省、回读更清爽；代价是丢失思考里出现过的代码细节。默认 true。"
+    "desc": "思考摘要里的代码块用省略号代替，只保留散文部分。思考块往往很长且代码占大头，去掉后上下文更省、回看更清爽；代价是丢失思考里的代码细节。默认 true。"
   },
   "provider.appendOnlyContext": {
-    "name": "只追加上下文缓存",
-    "desc": "缓存系统提示+工具定义并保持消息只追加，让支持前缀缓存的供应商（DeepSeek、小米/SGLang、Anthropic 等）命中率最大化。auto=对已知前缀缓存供应商自动开启（默认）；on=强制开；off=关。开启可显著降费提速；若某供应商兼容性出问题再关。",
+    "name": "只追加上下文",
+    "desc": "缓存系统提示和工具定义并保持消息只追加、不改写，让支持前缀缓存的供应商（DeepSeek、小米/SGLang、Anthropic 等）缓存命中率最大化、显著降费提速。auto=对已知的前缀缓存供应商自动开（默认）；on=强制开；off=关。某个供应商兼容性出问题再关。",
     "options": [
       "auto",
       "on",
@@ -1914,21 +1914,21 @@
     ]
   },
   "providers.anthropic.serverSideFallback": {
-    "name": "服务端回退",
-    "desc": "Claude Fable 5 / Mythos 5 请求被 Anthropic 安全分类器拦截时，在服务端改用 Claude Opus 5 重试（Anthropic server-side-fallback-2026-06-01 beta）。选择性开启；关闭时所有请求保持原有行为（被拦即失败）。默认 false。"
+    "name": "Anthropic 服务端回退",
+    "desc": "Claude Fable 5 / Mythos 5 请求被 Anthropic 安全分类器拦截时，在服务端改用 Claude Opus 5 重试（server-side-fallback-2026-06-01 beta）。关闭时被拦就直接失败；开启等于自动降级到 Opus 5 保住请求。默认 false。"
   },
   "providers.anthropic.slowMode": {
-    "name": "低优先级通道",
+    "name": "Anthropic 低优先级通道",
     "desc_en": "Whether direct Anthropic requests use the low-priority channel: off = never (default); auto = pick the low-priority channel when the provider offers it (steadier at peak, possibly slower, with a channel label in the status line). Suits subscription tiers that value peak success rate over speed.",
-    "desc": "Anthropic 直连请求是否使用低优先级（low-priority）通道。off=不使用（默认）；auto=在供应商提供时自动选用低优先级通道（高峰更稳，可能更慢），状态栏会显示通道标签。适合订阅档对速度不敏感、想提高高峰成功率的场景。",
+    "desc": "Anthropic 直连请求是否走低优先级通道：off=不用（默认）；auto=在供应商提供时自动选用低优先级通道，高峰期成功率更高但可能更慢。适合对速度不敏感、想提高高峰可用性的场景。",
     "options": [
       "off",
       "auto"
     ]
   },
   "providers.antigravityEndpoint": {
-    "name": "AG端点路由",
-    "desc": "google-antigravity 系供应商（chat/search/image/discovery）的端点策略。auto=先走生产端点，遇 5xx/429 自动切沙箱；production=只走生产端点；sandbox=只走沙箱端点。默认 auto，兼顾可用性；调试差异时才固定。",
+    "name": "Antigravity 端点路由",
+    "desc": "google-antigravity 系供应商（聊天/搜索/图像/发现）走哪个端点：auto=优先生产端点、失败自动切沙箱（默认）；production=只走生产端点；sandbox=只走沙箱端点。调通某个环境差异时再固定，否则留 auto。",
     "options": [
       "auto",
       "production",
@@ -1937,15 +1937,15 @@
   },
   "providers.autoThinkingMaxEffort": {
     "name": "自动思考上限",
-    "desc": "auto 思考分类器能判定的最高档位。xhigh=封顶在次高档，只有显式 ultrathink 才到 max（默认，防止意外烧顶档 token）；max=分类器认为特别的轮次可直接用顶档（在支持的模型上）。控制自动思考的费用上限。",
+    "desc": "auto 思考分类器最多能判到哪一档：xhigh=封顶在次顶档，只有显式 ultrathink 才用到 max（默认，防止意外烧顶档 token）；max=分类器认为特别复杂的轮次可直接用顶档（在支持该档的模型上）。这是控制自动思考费用天花板的开关。",
     "options": [
       "xhigh",
       "max"
     ]
   },
   "providers.cacheRetention": {
-    "name": "缓存保留时长",
-    "desc": "转发给支持供应商（Anthropic、Bedrock、OpenRouter、OpenAI）的提示缓存保留偏好。auto=跟随供应商默认；short=5 分钟档（写缓存最便宜，配合 cacheWarming 在空闲时保活）；long=1 小时档（写更贵，仅在活跃运行中保温）；none=禁用提示缓存与缓存亲和路由。默认 auto。",
+    "name": "提示缓存保留时长",
+    "desc": "转发给支持供应商（Anthropic、Bedrock、OpenRouter、OpenAI）的提示词缓存保留偏好：auto=跟随供应商默认（默认）；short=短保留档（写缓存便宜，配合 cacheWarming 空闲保活）；long=长保留档（写更贵，只在活跃运行中保温才划算）；none=禁用提示缓存与缓存亲和路由。想让跨轮缓存更稳可调 long，不在乎就 auto。",
     "options": [
       "auto",
       "short",
@@ -1955,7 +1955,7 @@
   },
   "providers.cacheWarming": {
     "name": "提示缓存保温",
-    "desc": "在提示缓存条目将过期前，用 1 token 输出预算重发上一请求以续命。off=关闭；streaming=在长工具执行等流式间隙保护昂贵前缀，agent 收工即停；idle=默认，运行间隙也刷新 5 分钟条目，但仅在预期省下的 miss 成本超过 $0.05 成本线时才发，且一旦重放未命中缓存即停。省钱开关，适合贵的长前缀场景。",
+    "desc": "在提示词缓存条目快过期前，用 1 token 的输出预算把上一次请求重发一遍给它续命，保住缓存命中省钱。off=关闭；streaming=在长工具执行等流式间隙保温，agent 收工即停；idle=运行间隙也保温短保留条目，但只在预期省下的缓存未命中成本超过大约 $0.05 才发、且一旦重放没命中就停（默认）。用长而贵的系统提示时值得开。",
     "options": [
       "off",
       "streaming",
@@ -1963,8 +1963,8 @@
     ]
   },
   "providers.fetch": {
-    "name": "网页读取后端",
-    "desc": "fetch/read URL 工具的抓取后端优先级。auto=自动挑选；native=内置抓取；trafilatura/lynx=本地正文抽取器；parallel/firecrawl/jina=第三方抓取服务（更快更全但外发 URL、可能计费）。对反爬站点或需高质量正文时换后端。默认 auto。",
+    "name": "网页抓取后端",
+    "desc": "fetch/read URL 工具用哪个抓取后端：auto=自动挑（默认）；native=内置抓取；trafilatura/lynx=本地正文抽取器；parallel/firecrawl/jina=第三方抓取服务（更稳更全，但 URL 会外发给对方且可能计费）。碰到反爬严的站点或要高质量正文时换后端。",
     "options": [
       "auto",
       "native",
@@ -1976,8 +1976,8 @@
     ]
   },
   "providers.fireworksTier": {
-    "name": "Fireworks服务档",
-    "desc": "Fireworks 请求的服务路径。standard=不发送 service_tier（默认）；priority=发送 priority，高峰期可靠性更高但单价更贵。-fast 系模型忽略此项（fast 本身就是独立服务路径）。高峰掉可用性时再开 priority。",
+    "name": "Fireworks 服务档",
+    "desc": "Fireworks 请求走哪条服务路径：standard=不发 service_tier 字段（默认）；priority=发送 priority，高峰期更可靠但单价更高。-fast 系模型忽略此项（fast 本身就是独立服务路径）。高峰掉可用性时再开 priority。",
     "options": [
       "standard",
       "priority"
@@ -1985,7 +1985,7 @@
   },
   "providers.kimiApiFormat": {
     "name": "Kimi API 格式",
-    "desc": "Kimi Code 供应商使用的 API 协议格式。auto=跟随实时模型元数据自动选择（默认）；openai=强制 OpenAI 兼容格式；anthropic=强制 Anthropic 消息格式。Kimi 端出现协议不兼容报错时手动固定。",
+    "desc": "Kimi Code 供应商用哪种 API 协议：auto=跟随实时模型元数据自动选（默认）；openai=强制 OpenAI 兼容格式；anthropic=强制 Anthropic 消息格式。Kimi 端报协议不兼容错误时手动固定。",
     "options": [
       "auto",
       "openai",
@@ -1994,15 +1994,15 @@
   },
   "providers.maxInFlightRequests": {
     "name": "供应商并发上限",
-    "desc": "按供应商 id（如 \"anthropic\"、\"openai\"）限制最大并发 LLM 请求数，在该配置根下的多个本地 omp 进程间共享。未列出的供应商不限。用于避免触发供应商限流或自建网关过载。默认空对象=全部不限。"
+    "desc": "按供应商 ID（如 \"anthropic\"、\"openai\"）限制同时在飞的 LLM 请求数，形如 {\"anthropic\": 4}；该限制在使用同一配置根的多个本地 omp 进程之间共享。未列出的供应商不受限。怕被限流或自建网关扛不住时配置。默认空对象=全部不限。"
   },
   "providers.ollama-cloud.maxConcurrency": {
-    "name": "Ollama云并发上限",
-    "desc": "每进程内 Ollama Cloud 子代理的最大并发运行数。0=取消该专属限制（仍受全局并发约束）。调小→对 Ollama Cloud 更温和、不易限流；调大→并行子代理更快。默认 3。"
+    "name": "Ollama Cloud 并发上限",
+    "desc": "每个 omp 进程内 Ollama Cloud 子代理允许同时跑多少个。0=取消这个专属限制（仍受全局并发约束）。调小对 Ollama Cloud 更温和、不易触发限流；调大并行更快。默认 3。"
   },
   "providers.openai-codex.codeMode": {
-    "name": "Codex Code模式",
-    "desc": "把 Codex 的 code_mode_only 模型（GPT-5.6）路由进 eval 单元格：直接工具只有 eval/ask/todo/yield/think/checkpoint/rewind，其余工具都通过 eval 调用（镜像 codex-rs 的 Code Mode）。off=关闭（默认）；on=强制；auto=跟随模型目录标记。",
+    "name": "Codex Code 模式",
+    "desc": "把 Codex 的 code_mode_only 模型（GPT-5.6）路由进 eval：这些模型的直连工具只有 eval、ask、todo、yield、think、checkpoint、rewind，其余会话工具都通过 eval 单元调用（镜像 codex-rs 的 Code Mode）。off=关闭（默认）；on=强制；auto=跟随模型目录标记。",
     "options": [
       "off",
       "on",
@@ -2010,16 +2010,16 @@
     ]
   },
   "providers.openai-codex.codeModeDirectTools": {
-    "name": "Code模式直连工具",
-    "desc": "Codex Code Mode 下额外直连（不经 eval）的工具名单数组。标准直连工具为 eval、ask、todo、yield、think、checkpoint、rewind，此处追加更多。仅在使用 code_mode_only 模型时有意义。默认空数组。"
+    "name": "Code 模式直连工具",
+    "desc": "Codex Code Mode 下额外允许直连（不经过 eval）的工具名列表。标准直连工具已含 eval、ask、todo、yield、think、checkpoint、rewind，这里追加更多。仅在使用 code_mode_only 模型时有意义。默认空数组。"
   },
   "providers.openaiLiveSteering": {
-    "name": "OpenAI流中插话",
-    "desc": "GPT-6 响应流式输出期间，你键入的消息经 Codex WebSocket 直接注入该次响应，而不必等到下一个工具边界才被处理。插话更即时；关掉则回到保守的边界注入。默认 true。"
+    "name": "OpenAI 流中插话",
+    "desc": "GPT-6 响应还在流式输出时，你键入的消息经 Codex WebSocket 直接注入这次响应，而不必等下一个工具边界才被看到——插话更即时。关掉则退回保守的边界注入。默认 true。"
   },
   "providers.openaiWebsockets": {
-    "name": "OpenAI长连接",
-    "desc": "OpenAI Codex 模型的 WebSocket 策略。auto=用模型目录默认（默认）；on=强制走 WebSocket（流更稳、支持 live steering）；off=禁用，退回普通 HTTP。网络环境对 WS 不友好时改 off。",
+    "name": "OpenAI 长连接策略",
+    "desc": "OpenAI Codex 模型是否走 WebSocket 长连接：auto=用模型目录默认（默认）；on=强制走 WebSocket（流更稳、支持流中插话）；off=禁用，退回普通 HTTP 流。网络环境对 WS 不友好（公司代理掐长连接）时改 off。",
     "options": [
       "auto",
       "off",
@@ -2027,8 +2027,8 @@
     ]
   },
   "providers.openrouterVariant": {
-    "name": "OR路由变体",
-    "desc": "默认追加到 OpenRouter 模型 id 后的路由变体后缀（选择器已写明变体时以选择器为准）。default=不加后缀；nitro=高吞吐（更贵）；floor=最低价；online=联网搜索插件；exacto=短提示精确档（更便宜）。默认 default。",
+    "name": "OpenRouter 路由变体",
+    "desc": "默认追加到 OpenRouter 模型 ID 后的路由变体后缀（你在选择器里已写明变体时以选择器为准）：default=不加后缀；nitro=高吞吐更贵；floor=最低价；online=带联网搜索插件；exacto=短提示精确档更便宜。默认 default。",
     "options": [
       "default",
       "nitro",
@@ -2038,16 +2038,16 @@
     ]
   },
   "providers.streamFirstEventTimeoutSeconds": {
-    "name": "首事件看门狗",
-    "desc": "等待模型流第一个事件的秒数，超时判定挂起并走恢复。-1=用供应商/环境默认（默认）；0=禁用看门狗。自建网关冷启动慢时可调大或禁用；防止干等挂死则调小。"
+    "name": "流首事件超时",
+    "desc": "等待模型流第一个事件的秒数，超时判定请求挂起并走恢复流程。-1=用供应商或环境变量的默认（默认）；0=禁用看门狗。自建网关冷启动慢时可调大或禁用；防止干等卡死就调小。"
   },
   "providers.streamIdleTimeoutSeconds": {
-    "name": "流空闲看门狗",
-    "desc": "模型流两个事件之间允许的最长静默秒数，超时判定流挂起。-1=用供应商/环境默认（默认）；0=禁用。供应商长时间不吐字时保护会话不卡死；自建慢速后端适当调大。"
+    "name": "流空闲超时",
+    "desc": "模型流两个事件之间允许静默的最长秒数，超时判定流挂起。-1=用供应商/环境默认（默认）；0=禁用。供应商长时间不吐字时防止会话卡死；慢速自建后端适当调大。"
   },
   "providers.tinyModelDevice": {
     "name": "小模型推理后端",
-    "desc": "本地小模型（标题生成+记忆）的推理后端：ONNX 执行提供器（cpu/gpu/cuda/metal/webgpu/dml/coreml 等）或 mlx（Apple 芯片下载 MLX 权重经 mlx-lm 运行）。default=仅 CPU 的 ONNX（默认）。PI_TINY_DEVICE 环境变量可覆盖。有独显/NPU 时选对应后端更快。",
+    "desc": "本地小模型（生成会话标题、记忆整理等后台杂活）的推理后端：可选 ONNX 执行提供器（cpu/gpu/cuda/metal/webgpu/dml/coreml 等），或 mlx（Apple 芯片下载 MLX 权重用 mlx-lm 跑）。default=纯 CPU 的 ONNX（默认）。有独显/NPU 时选对应后端更快，选错了会回退或报错。PI_TINY_DEVICE 环境变量可覆盖。",
     "options": [
       "default",
       "gpu",
@@ -2068,7 +2068,7 @@
   },
   "providers.tinyModelDtype": {
     "name": "小模型量化精度",
-    "desc": "本地小模型 ONNX 的量化/精度。default=用模型自带 dtype（q4，默认）；低精度（q4/q2 等）更快，高精度（fp16/fp32）更忠实。MLX 后端忽略此设置（仓库已预量化 4bit）。PI_TINY_DTYPE 环境变量可覆盖。",
+    "desc": "本地小模型 ONNX 权重的量化精度：default=用模型自带 dtype（q4，默认）；低精度（q4/q2/int8 等）更快更省内存，高精度（fp16/fp32）更忠实原模型。MLX 后端忽略此项（其仓库已预量化 4 位）。PI_TINY_DTYPE 环境变量可覆盖。",
     "options": [
       "default",
       "q4",
@@ -2088,125 +2088,125 @@
   },
   "providers.webSearchTimeoutSeconds": {
     "name": "网页搜索单家超时",
-    "desc": "每家搜索后端的硬超时秒数（上限 300），超时后 web_search 换下一个回退后端。默认 60。调小→更快放弃慢源换下一家；调大→给慢速自建引擎更多机会。"
+    "desc": "每家搜索后端的硬超时秒数（最大 300），超时后 web_search 自动换下一个回退后端。默认 60。调小更快放弃慢源；自建慢引擎（如本地 SearXNG）可调大。"
   },
   "python.interpreter": {
     "name": "Python 解释器",
-    "desc": "显式指定 Python 可执行文件路径。设置后跳过自动运行时发现（venv/conda 探测），一律用该解释器。多环境机器上确保 eval 用对 Python 时配置；留空自动发现。默认空字符串。"
+    "desc": "显式指定 Python 可执行文件路径，设置后跳过自动发现（venv/conda 探测），eval 一律用它。多 Python 环境共存的机器上确保用对解释器时配置；留空自动发现。默认留空。"
   },
   "python.kernelMode": {
     "name": "Python 内核模式",
-    "desc": "eval 的 IPython 内核生命周期。session=跨多次 eval 保持同一内核（默认，变量/导入延续，适合迭代探索）；per-call=每次调用新建内核（干净隔离，避免状态污染，代价是每次重跑导入）。",
+    "desc": "eval 工具里 Python 单元的内核生命周期：session=多次 eval 共用一个 IPython 内核（默认，变量和导入延续，适合迭代探索）；per-call=每次调用起新内核（干净隔离、无状态污染，但每次要重跑导入，更慢更耗）。",
     "options": [
       "session",
       "per-call"
     ]
   },
   "ratchet.enabled": {
-    "name": "Ratchet预层",
-    "desc": "启用 ratchet eval/爬山（hillclimb）预层：以指标只升不降为目标做自动优化循环；/ratchet 可按当前会话临时开启。只在做基准优化实验时打开。默认 false。"
+    "name": "Ratchet 预层",
+    "desc": "启用 ratchet 的 eval/爬山优化预层：以「指标只升不降」为目标做自动优化循环，做基准调优/参数爬山实验时才用；/ratchet 可为当前会话临时开启。默认 false。"
   },
   "read.defaultLimit": {
     "name": "读取默认行数",
-    "desc": "agent 调 read 且未带 limit 参数时返回的默认行数。默认 300。调大→少一次翻页但单次上下文更多；调小→更省 token 但要多次读取。"
+    "desc": "agent 调 read 不带 limit 参数时默认返回多少行。默认 300。调大少翻页但单次上下文更多；调小更省 token 但要多读几次。"
   },
   "read.renderMarkdown": {
-    "name": "读取渲染MD",
-    "desc": "read 读 Markdown 时渲染成终端格式化预览而非原始源码。人看着舒服，但 agent 拿到的就不再是可编辑原文，改文件前通常需要源码。默认 false（给 agent 用保持关闭）。"
+    "name": "读取渲染 Markdown",
+    "desc": "read 读 Markdown 时渲染成终端格式化预览而不是原始源码。人看着舒服，但 agent 拿到的就不是可精确编辑的原文；改文档需要源码时保持关闭。默认 false。"
   },
   "read.summarize.enabled": {
-    "name": "结构化代码摘要",
-    "desc": "read 无显式选择器时代码文件返回结构性摘要（签名/类/函数骨架+行号）而非全文，大幅省上下文；需要细节时 agent 按行号段再读。读小文件（低于 minTotalLines）仍返回原文。默认 true。"
+    "name": "代码结构摘要",
+    "desc": "read 不带显式选择器时，代码文件返回结构性摘要（类/函数签名骨架+行号）而非全文，大幅省上下文；要看细节时按摘要行号再读那一段。低于 minTotalLines 的小文件仍返回原文。默认 true。"
   },
   "read.summarize.minBodyLines": {
     "name": "摘要折叠函数行数",
-    "desc": "函数/字面量体超过该行数才在结构摘要中折叠为省略形式；低于此阈值的小函数直接完整展示。调大→摘要保留更多完整小函数。默认 4。"
+    "desc": "函数体或字面量超过多少行才在结构摘要里折叠成省略形式；短于此值的小函数直接完整展示。调大摘要里保留更多完整小函数。默认 4。"
   },
   "read.summarize.minCommentLines": {
     "name": "摘要折叠注释行数",
-    "desc": "多行块注释超过该行数才在结构摘要中折叠；短注释原样保留。调大→文档性长注释也被折叠。默认 6。"
+    "desc": "多行块注释超过多少行才在结构摘要里折叠；短注释原样保留。调大则文档性长注释也被折叠。默认 6。"
   },
   "read.summarize.minTotalLines": {
     "name": "摘要文件行数下限",
-    "desc": "总行数低于该值的文件不做结构摘要、直接原样返回。调大→更多文件走摘要省 token；调小→更多原文直达。默认 100。"
+    "desc": "总行数低于这个值的文件直接原样返回、不做结构摘要。调大让更多文件走摘要省 token；调小让更多原文直达。默认 100。"
   },
   "read.summarize.prose": {
     "name": "散文结构摘要",
-    "desc": "对 Markdown 与纯文本的读取也返回结构性摘要（标题骨架+行号）而非全文。文档很长时省上下文；但读散文内容本身时可能仍需按行号展开。默认 false。"
+    "desc": "读 Markdown 和纯文本时也返回结构摘要（标题骨架+行号）而不是全文。文档很长时省上下文；但要读正文本身还是得按行号展开。默认 false。"
   },
   "read.summarize.unfoldLimit": {
     "name": "展开大小硬上限",
-    "desc": "BFS 展开摘要时单次展开可见行数的硬上限：某段展开会超过上限就跳过（该段保持折叠）并继续处理其余段。控制「展开一次最多吃多少上下文」。默认 100。"
+    "desc": "BFS 展开摘要折叠段时的硬上限：某段一展开会让可见行数超过这个值就跳过它（该段保持折叠）、继续展开其他段。控制「一次展开最多塞进多少上下文」。默认 100。"
   },
   "read.summarize.unfoldUntil": {
-    "name": "展开目标可见行数",
-    "desc": "BFS 展开可折叠段，直到摘要可见行数达到该值；0=只保留最外层省略。值越大摘要越详细、token 越多。与 unfoldLimit 配合决定摘要详略。默认 50。"
+    "name": "展开目标行数",
+    "desc": "BFS 逐层展开可折叠段，直到摘要可见行数达到这个值为止；0=只保留最外层省略（最省）。值越大摘要越详细、token 越多。和 unfoldLimit 一起决定摘要详略。默认 50。"
   },
   "read.toolResultPreview": {
     "name": "读取结果内联显示",
-    "desc": "把 read 工具结果在会话记录里内联完整渲染，而不是显示成一行摘要行。人回看更方便，界面更吵、终端占用更多。默认 false。"
+    "desc": "把 read 工具的结果在会话记录里完整内联渲染，而不是折叠成一行摘要。回看人方便，但界面更吵、终端占用更多。默认 false。"
   },
   "readLineNumbers": {
     "name": "读取自带行号",
-    "desc": "read 工具输出默认带行号前缀，方便 agent 直接引用「第几行」做精准编辑；代价是每行多占几个字符。也可按次在 read 参数里开关。默认 false。"
+    "desc": "read 工具输出默认每行带行号前缀，方便 agent 引用「第几行」做精准编辑；代价是每行多占几个字符。也可以在单次 read 调用里按参数开关。默认 false。"
   },
   "recap.enabled": {
     "name": "空闲进展回顾",
-    "desc": "终端空闲一段时间后，用小模型生成一段「目前进展到哪」的简短回顾显示出来，回来时快速接上。费一点小模型调用；不喜欢被打扰可关。默认 true。"
+    "desc": "终端空闲一段时间后，用小模型生成一段「目前进展到哪」的简短回顾显示出来，你回来时能快速接上上下文。会多调一次小模型；不想被打扰就关。默认 true。"
   },
   "recap.idleSeconds": {
-    "name": "回顾空闲秒数",
-    "desc": "空闲多少秒后触发展开回顾。默认 240（4 分钟）。调小→回顾更勤；调大→更少打扰。仅在 recap.enabled 开启时生效。"
+    "name": "回顾触发空闲秒数",
+    "desc": "终端空闲多少秒后才显示进展回顾。默认 240（4 分钟）。调小回顾更勤但更吵，调大更少打扰。仅在 recap.enabled 开启时生效。"
   },
   "repetitionPenalty": {
     "name": "重复惩罚",
-    "desc": "对重复 token 施加惩罚以减少复读；过高会伤害代码与术语的正确复现。-1=用供应商默认（默认值），其余按各 API 语义传值。仅对支持的采样后端生效，一般不动。"
+    "desc": "对重复的 token 施加惩罚以减少复读；过高会伤代码与术语的正确复现。-1=用供应商默认（默认值），其他值按各 API 语义传递。仅对支持该参数的后端生效，一般不动。"
   },
   "retry.baseDelayMs": {
-    "name": "退避基线(ms)",
+    "name": "重试退避基线",
     "desc_en": "Initial wait in milliseconds for automatic API retries, with later waits multiplying per the backoff policy. Default 500 — higher is gentler on rate limits but slower to recover, lower the opposite. Works with maxRetries/maxDelayMs.",
-    "desc": "API 出错自动重试的初始等待毫秒数，后续按退避策略在此基础上倍增。默认 500。调大→对限流更温和但恢复更慢；调小→恢复快但可能撞限流。配合 maxRetries/maxDelayMs 使用。"
+    "desc": "API 出错自动重试时的初始等待毫秒数，后续按退避策略在此基础上倍增。默认 500。调大对限流更温和但恢复更慢；调小恢复快但更容易撞限流。配合 retry.maxRetries、retry.maxDelayMs 使用。"
   },
   "retry.enabled": {
     "name": "自动重试",
     "desc_en": "Master switch for automatic retries on API errors (rate limits, timeouts, 5xx, etc.); off means a failed request throws immediately and you decide the next step. Keep it on for unattended long runs. Default true.",
-    "desc": "API 错误（限流、超时、5xx 等）时自动重试的总开关。关闭后请求失败立即抛错，由你自己决定下一步。无人值守长任务建议保持开启。默认 true。"
+    "desc": "API 错误（限流、超时、5xx 等）时自动重试的总开关。关闭后请求一失败就抛错、由你自己决定下一步。无人值守长任务建议保持开启。默认 true。"
   },
   "retry.fallbackChains": {
     "name": "回退链配置",
-    "desc": "JSON 对象：把模型角色、\"provider/model\" 或通配（\"provider/*\"、\"openrouter/google/*\"）映射到有序回退选择器列表，如 {\"default\":[\"openai/gpt-4o-mini\"]}。模型/供应商失败时按序切换；条目可带思考后缀（:low/:high/:max/:off），裸条目继承失败轮的思考档。本机已为 web 角色配置了长回退链。影响失败时的可用性与费用走向。"
+    "desc": "JSON 对象：把模型角色（如 \"default\"）、模型选择器（\"provider/model\"）或通配符（\"provider/*\"）映射到一串有序的回退选择器，例如 {\"default\":[\"openai/gpt-4o-mini\"]}。主模型失败时按列表顺序切换。条目可带思考档后缀（:low/:high/:max/:off），不带就继承失败轮的思考档。这是可用性和费用的兜底配置，默认空。"
   },
   "retry.fallbackRevertPolicy": {
     "name": "回退返回策略",
-    "desc": "回退到备用模型后，何时切回主模型。cooldown-expiry=主模型冷却期结束即返回（默认）；never=本次会话留在回退模型上不再自动切回。常用「回退稳但贵/弱」场景下控制回切时机。",
+    "desc": "切到回退模型后什么时候切回主模型：cooldown-expiry=主模型冷却期一结束就回来（默认）；never=本会话就留在回退模型上不再自动切回。回退模型更稳但更贵/更弱时用 cooldown-expiry。",
     "options": [
       "cooldown-expiry",
       "never"
     ]
   },
   "retry.maxDelayMs": {
-    "name": "退避上限(ms)",
-    "desc": "重试间隔的等待上限毫秒。供应商要求等待超过此上限、且凭据/模型回退都救不回来时，请求快速失败而不是继续睡（例如 3 小时的 Anthropic 限流窗口）。0=解除上限，允许跨供应商声明的配额重置自动恢复。默认 0。与 waitForUsageReset 搭配：要等 5 小时/周级配额重置，此项必须为 0。"
+    "name": "重试等待上限",
+    "desc": "两次重试之间最多等多少毫秒。供应商要求等的比这久、且换凭据/换模型都救不回来时，请求快速失败而不是睡觉傻等（比如 Anthropic 3 小时的限流窗口）。0=不设上限，允许一直等到供应商声明的配额重置自动恢复。默认 300000（5 分钟）。注意想让 retry.waitForUsageReset 真正等到 5 小时/周级配额重置，这项必须设为 0。"
   },
   "retry.maxRetries": {
     "name": "最大重试次数",
-    "desc": "单次请求因 API 错误重试的最大次数，超过即失败。默认 10。调大→对不稳定供应商更顽强但失败暴露更慢；调小→更快报错止损。"
+    "desc": "单个请求因 API 错误最多重试几次，超过就宣告失败。默认 10。调大对不稳定供应商更顽强但失败暴露更慢；调小更快报错止损。"
   },
   "retry.modelFallback": {
     "name": "模型回退开关",
-    "desc": "允许重试恢复过程中切换到已配置的回退模型（fallbackChains/内置回退）。关闭则只重试原模型、不换型号，保证结果一致但可用性下降。默认 true。"
+    "desc": "允许重试恢复时切换到已配置的回退模型（retry.fallbackChains 里的条目）。关闭则只重试原模型、不换型号——结果一致性更好但可用性下降。默认 true。"
   },
   "retry.usageAwareFallback": {
     "name": "额度感知回退",
-    "desc": "利用可靠的 coding-plan 额度报告：主账号临近限额时优先切同供应商的其他账号，再用配置的回退模型，最后才面对硬限额。普通按量 API key 不参与此逻辑。订阅（订阅制套餐）多号用户开启最划算。默认 false。"
+    "desc": "利用 coding 订阅套餐的额度报告：主账号临近限额时优先切同供应商的其他账号，其次再用配置的回退模型，最后才面对硬限额。普通按量计费的 API key 不参与这个逻辑。有多个订阅账号的用户开启最划算。默认 false。"
   },
   "retry.usageReservePct": {
     "name": "额度预留百分比",
-    "desc": "coding-plan 模型剩余额度低于该百分比即视为「接近上限」，触发预留策略（切换账号/回退）。额度未知或无法映射时不干预、保持主模型。默认 10。调大→更早避险但更费账号轮换。"
+    "desc": "coding 套餐模型剩余额度低于这个百分比就视为「接近上限」，触发预留策略（换账号/回退）。额度读不到或无法映射时不干预、继续用主模型。默认 10。调大更早避险但更频繁换账号。"
   },
   "retry.usageReservePolicy": {
     "name": "预留期策略",
-    "desc": "所有同供应商订阅账号都进入预留区间时的处理。confirm=停下来向你确认（默认）；auto=自动切到下一个可用回退；fail-closed=不消耗预留额度也不回退，直接失败。控制「最后 10% 额度」花不花、怎么花。",
+    "desc": "同一供应商的所有订阅账号都进入预留区间时怎么办：confirm=停下来问你（默认）；auto=自动切下一个可用回退；fail-closed=宁可失败也不消耗预留额度。控制「最后一点额度」花不花、怎么花。",
     "options": [
       "confirm",
       "auto",
@@ -2215,122 +2215,122 @@
   },
   "retry.waitForUsageReset": {
     "name": "等待额度重置",
-    "desc": "供应商报告额度耗尽且给出重置时间（任意供应商的 5 小时/周级窗口）时，休眠到重置点而不是快速失败。等待可随时 ⎋ 中止，但会占住子代理，无人值守长跑请关。注意：必须同时把 retry.maxDelayMs 设为 0 才真正生效。默认 true。"
+    "desc": "供应商报告额度耗尽且给出重置时间（任意供应商的 5 小时/周级配额窗口）时，休眠到重置点而不是快速失败。等待时可按 ⎋ 中止，但会占住子代理一起等——无人值守长跑请关。注意必须同时把 retry.maxDelayMs 设为 0 才会真的等到重置。默认 false。"
   },
   "searxng.basicPassword": {
-    "name": "SearXNG密码",
+    "name": "SearXNG 密码",
     "desc_en": "Password for HTTP Basic auth on a self-hosted SearXNG instance; must be set together with basicUsername (setting only one errors at request time). For authenticated private instances; credential-type, keep it secret. Empty by default.",
-    "desc": "自建 SearXNG 实例 HTTP Basic 认证的密码，与 basicUsername 必须成对设置（只设其一会在请求时报错）。用于有认证的私有实例；凭据类配置注意保密。默认空。"
+    "desc": "自建 SearXNG 实例 HTTP Basic 认证的密码，必须与 searxng.basicUsername 成对设置（只设一个会在请求时报错）。有认证的私有实例才需要，凭据注意保密。默认留空。"
   },
   "searxng.basicUsername": {
-    "name": "SearXNG用户名",
+    "name": "SearXNG 用户名",
     "desc_en": "Username for HTTP Basic auth (RFC 7617, must not contain a colon) on a self-hosted SearXNG instance, used together with basicPassword; pairs with the private instance at searxng.endpoint. Empty by default.",
-    "desc": "自建 SearXNG 实例 HTTP Basic 认证的用户名（RFC 7617，用户名不能含冒号），与 basicPassword 成对使用。配合 searxng.endpoint 指向的私有实例。默认空。"
+    "desc": "自建 SearXNG 实例 HTTP Basic 认证的用户名（RFC 7617，用户名不能含冒号），与 searxng.basicPassword 成对使用。配合 searxng.endpoint 指向的私有实例。默认留空。"
   },
   "searxng.categories": {
-    "name": "SearXNG分类",
+    "name": "SearXNG 分类",
     "desc_en": "Additional categories query parameter on search requests (e.g. general, images, it, science), limiting search categories; empty = the parameter is not sent, the instance decides. Empty by default.",
-    "desc": "搜索请求附加的 categories 查询参数（如 general、images、it、science），限定搜索类别。留空=不发该参数，由实例默认决定。默认空。"
+    "desc": "发给 SearXNG 的 categories 查询参数，限定搜索类别（如 general、images、it、science，多个用逗号分隔）。留空=不带该参数、用实例默认。默认留空。"
   },
   "searxng.endpoint": {
-    "name": "SearXNG地址",
-    "desc": "自建 SearXNG 实例的 Base URL，配置后 web_search 的 SearXNG 后端用它做网页搜索。留空则该后端不可用（可用 SEARXNG_ENDPOINT 环境变量替代）。默认空。"
+    "name": "SearXNG 实例地址",
+    "desc": "自建 SearXNG 实例的基础 URL；填了之后 web_search 的 SearXNG 后端才可用，做搜索请求时会带上你配置的其他 searxng.* 参数。留空则该后端不可用，也可用 SEARXNG_ENDPOINT 环境变量替代。默认留空。"
   },
   "searxng.engines": {
-    "name": "SearXNG引擎",
+    "name": "SearXNG 引擎",
     "desc_en": "Additional engines query parameter naming the upstream engines to enable (comma-separated, e.g. google,bing,duckduckgo); empty = the instance default engine set. Empty by default.",
-    "desc": "搜索请求附加的 engines 查询参数，指定启用哪些上游引擎（逗号分隔，如 google,bing,duckduckgo）。留空=实例默认引擎集。默认空。"
+    "desc": "发给 SearXNG 的 engines 查询参数，指定用哪些上游引擎（逗号分隔，如 google,bing,duckduckgo）。留空=用实例默认引擎集。默认留空。"
   },
   "searxng.language": {
-    "name": "SearXNG语言",
+    "name": "SearXNG 语言",
     "desc_en": "Additional language query parameter (e.g. zh-CN, en) affecting result language and region; empty = instance default. Suggest zh-CN for Chinese retrieval. Empty by default.",
-    "desc": "搜索请求附加的 language 查询参数（如 zh-CN、en），影响结果语言与区域。留空=实例默认。中文检索场景建议设 zh-CN。默认空。"
+    "desc": "发给 SearXNG 的 language 查询参数（如 zh-CN、en），影响结果语言与区域。留空=实例默认。中文检索建议填 zh-CN。默认留空。"
   },
   "searxng.safesearch": {
-    "name": "SearXNG安全搜索",
+    "name": "SearXNG 安全搜索",
     "desc_en": "Safe-search level: 0 = off, 1 = moderate, 2 = strict, sent as-is as the safesearch parameter; other values error. Empty = the parameter is not sent. Empty by default.",
-    "desc": "安全搜索级别：0=关闭、1=中等（moderate）、2=严格（strict），直接作为 safesearch 参数发送；设其他值会报错。留空=不发该参数。默认空。"
+    "desc": "安全搜索级别，直接作为 safesearch 参数发送：0=关闭、1=中等、2=严格；填其他值请求会报错。留空=不带该参数、用实例默认。默认留空。"
   },
   "searxng.token": {
-    "name": "SearXNG令牌",
+    "name": "SearXNG 令牌",
     "desc_en": "Bearer token for accessing a SearXNG instance, sent as Authorization: Bearer <token>; alternative to Basic auth. Can be replaced by the SEARXNG_TOKEN environment variable. Credential-type, keep it secret. Empty by default.",
-    "desc": "访问 SearXNG 实例用的 Bearer 令牌，请求时以 Authorization: Bearer <token> 发送；与 Basic 认证二选一。可用 SEARXNG_TOKEN 环境变量替代。凭据类配置注意保密。默认空。"
+    "desc": "访问 SearXNG 实例用的 Bearer 令牌，请求时以 Authorization: Bearer <token> 发送，与 Basic 认证二选一。也可用 SEARXNG_TOKEN 环境变量。凭据注意保密。默认留空。"
   },
   "secrets.enabled": {
     "name": "密钥脱敏",
-    "desc": "发送给 AI 供应商前，混淆已配置的密钥并抹除凭据形状的 token。按环境变量名匹配 KEY/SECRET/TOKEN/PASSWORD/AUTH/CREDENTIAL/PRIVATE/OAUTH 且值≥8字符的项，可能误伤无关变量。多一把隐私保险，但极端情况会改坏合法内容。默认 false。"
+    "desc": "发给 AI 供应商之前，先混淆已配置的密钥、并抹除看起来像凭据的 token（按 KEY/SECRET/TOKEN/PASSWORD/AUTH 等环境变量名匹配、值≥8 字符）。多一层隐私保险，但极端情况可能误伤合法内容（比如恰好长那样的测试字符串）。默认 false。"
   },
   "security.enabled": {
     "name": "安全扫描",
-    "desc": "启用 omp 原生安全扫描的规划与执行，以及只读的 security:// 资源命名空间，供做安全审计/漏洞盘点类任务时用。日常开发用不到可关。默认 false。"
+    "desc": "启用 omp 原生安全扫描的规划与执行，以及只读的 security:// 资源命名空间，做安全审计/漏洞盘点类任务时用。日常开发用不到可关。默认 false。"
   },
   "setupVersion": {
     "name": "设置向导版本",
     "desc_en": "Internal state recording which version of the initial setup flow you have completed; with startup.setupWizard on, newly added onboarding steps are shown once per version bump. Editing by hand is meaningless — leave it alone. Default 0 (this machine shows 2 = second-version onboarding completed).",
-    "desc": "内部状态：记录你已完成到哪一版初始设置流程。配合 startup.setupWizard——每升一版且开关开启时，把新增的引导步骤展示一次。手动改无意义，保持不动。默认 0（本机为 2，表示已完成第 2 版引导）。"
+    "desc": "内部状态：记录你已完成的初始化向导版本号。配合 startup.setupWizard——每次版本升级且开关开着时，把新增的引导步骤展示一次。不要手动改。默认 0。"
   },
   "share.redactSecrets": {
-    "name": "分享脱敏",
-    "desc": "/share 上传快照前先跑一遍密钥混淆器（用 secrets.* 配置），避免把 API key 等一起分享出去。分享即外发，建议保持开启。默认 true。"
+    "name": "分享前脱敏",
+    "desc": "/share 上传会话快照前先跑一遍密钥混淆器（用 secrets.* 的配置），避免把 API key 之类一起分享出去。分享就是外发，建议保持开启。默认 true。"
   },
   "share.serverUrl": {
     "name": "分享服务地址",
-    "desc": "/share 使用的查看/上传服务 Base URL（加密 blob 上传+查看器，链接形如 <base>/<id>#<key>）。默认官方 https://my.omp.sh/s；可指到自建实例以完全自持数据。"
+    "desc": "/share 使用的查看器/上传服务基础地址（加密 blob 上传+查看器，链接形如 <base>/<id>#<key>）。默认官方 https://my.omp.sh/s；想完全自持数据可指向自建实例。"
   },
   "share.store": {
     "name": "分享存储方式",
-    "desc": "/share 把加密会话 blob 传到哪。blob=omp 分享服务（默认，链接短、可在线看）；gist=存成 GitHub Gist（走你的 GitHub 账号，受 Gist 规则约束）。二者都是密文，钥匙在链接 # 后段。",
+    "desc": "/share 把加密会话 blob 存到哪：blob=omp 分享服务（默认，链接短、可直接在线看）；gist=存成 GitHub Gist（走你的 GitHub 账号、受 Gist 规则约束）。两者都是密文，解密钥匙在链接 # 后面那截。",
     "options": [
       "blob",
       "gist"
     ]
   },
   "sharpshooter.injectionTokenLimit": {
-    "name": "决策记忆注入预算",
+    "name": "Sharpshooter 注入预算",
     "desc_en": "Approximate token budget when Sharpshooter project decision memories (confirmed decisions in architecture.md/product.md/style.md, etc.) are injected into context, truncated beyond it; larger is fuller reference but crowds context. Default 15000.",
-    "desc": "Sharpshooter 项目决策记忆（architecture.md/product.md/style.md 等已确认决策）注入上下文时的近似 token 预算，超出截断。调大→决策参考更全但挤占上下文。默认 15000。"
+    "desc": "Sharpshooter（决策记忆后端）往上下文里注入已确认的项目决策（architecture.md、product.md、style.md 等文件内容）时的 token 预算，超出截断。调大决策参考更全但更占上下文。默认 15000。仅在 memory.backend=sharpshooter 时生效。"
   },
   "sharpshooter.intervalMinutes": {
-    "name": "决策整合间隔",
+    "name": "Sharpshooter 整合间隔",
     "desc_en": "Minimum interval in minutes between Sharpshooter consolidations: within the interval, consolidation is skipped (not_due) and queued decision deltas merge into the memory files next round. Default 5; larger saves calls but delays memory updates.",
-    "desc": "Sharpshooter 整合（consolidation）的最小间隔分钟数：距上次整合不足该间隔时跳过（not_due），排队中的决策增量下轮再并入记忆文件。默认 5。调大→整合更省但记忆更新更迟。"
+    "desc": "Sharpshooter 把新捕获的决策增量合并进记忆文件的最小间隔分钟数；距上次整合不足这个间隔就跳过，排队的增量下一轮再并入。默认 5。调大更省但记忆更新更迟。"
   },
   "sharpshooter.model": {
-    "name": "决策抽取模型",
-    "desc": "Sharpshooter 抽取/整合所用的模型选择器（从对话中识别架构/产品/风格决策、被否方案、纠正等写入记忆文件）。留空用 smol 角色（默认）。想提高决策抽取质量可指定更强模型，费 token。默认空。"
+    "name": "Sharpshooter 抽取模型",
+    "desc": "Sharpshooter 做决策抽取/整合用的模型选择器（从对话里识别架构/产品/风格决策、被否决的方案、纠正等写入记忆文件）。留空用 smol 角色（默认）；想提高决策抽取质量可指定更强模型，代价是更费 token。"
   },
   "shellMinimizer.enabled": {
-    "name": "Shell输出压缩",
-    "desc": "把 bash 等工具返回给 agent 的冗长输出（git、npm、cargo 等命令的进度刷屏）压缩成精简摘要再喂给模型；原始完整输出另存 bash-original artifact，可经 [raw output: artifact://<id>] 找回。大幅省上下文；怕压缩丢细节可关。默认 true。"
+    "name": "Shell 输出压缩",
+    "desc": "把 bash 等工具返回给 agent 的冗长输出（git、npm、cargo 等命令的刷屏内容）先压缩成精简摘要再喂给模型，原始完整输出另存为 artifact 可找回。大幅省上下文；怕压缩丢细节可关。默认 true。"
   },
   "shellMinimizer.except": {
     "name": "压缩排除名单",
     "desc_en": "Deny-list of filters excluded from output compression (empty = exclude none) (inferred, undocumented upstream — selection is by filter name); try a small list first when you want certain output kept verbatim. Default empty array.",
-    "desc": "排除名单：不参与输出压缩的过滤器列表（空数组=不排除任何项）。按「过滤器名称」选择属推断行为（推测，官方未说明名单粒度），想让某类输出保留完整原样时先少量试用验证。默认空数组。"
+    "desc": "从压缩管线里排除的过滤器名单，命中的输出不被压缩、原样返回。名单粒度按压缩引擎的过滤器名称（具体名字未在文档中确认，建议先小范围试用验证）。默认空数组=不排除任何项。"
   },
   "shellMinimizer.legacyFilters": {
     "name": "旧版过滤器",
     "desc_en": "Use legacy filter implementations instead of the current ones (unset = engine default) (inferred, undocumented upstream — inferred from the key name); a fallback switch when new filters misbehave on certain output. Default unset.",
-    "desc": "改用旧版过滤器实现而非现行版本（未设置=跟随引擎默认）。从键名推断（推测，官方未说明具体差异），新过滤器对某些输出表现异常时的回退开关。默认未设（unset）。"
+    "desc": "改用旧版过滤器实现而不是现行版本（布尔开关，未设置=跟随引擎默认）。从键名推断为兼容回退项——新过滤器对某些输出表现异常时可以试试；具体新旧差异未在文档中确认。默认未设置。"
   },
   "shellMinimizer.maxCaptureBytes": {
     "name": "压缩捕获上限",
     "desc_en": "Maximum captured bytes of raw output that enter compression; beyond it, output takes the normal truncation/artifact-spill path instead. Default 4194304 (4 MiB); shrink under memory pressure, enlarge to compress huge logs too.",
-    "desc": "参与压缩的原始输出最大捕获字节数，超出部分不进入压缩管线（走常规截断/artifact 溢出）。默认 4194304（4 MiB）。内存紧张可调小；超大日志也想压缩则调大。"
+    "desc": "参与压缩的原始输出最多捕获多少字节，超出部分不进压缩管线（走常规截断/artifact 溢出）。默认 4194304（4 MiB）。内存紧张可调小；超大日志也想压缩则调大。"
   },
   "shellMinimizer.only": {
     "name": "压缩仅限名单",
     "desc_en": "Allow-list: when non-empty, only the listed filters are applied for compression (empty = no filtering, all default filters used) (inferred, undocumented upstream — selection is by filter name); try a small list first to verify. Default empty array.",
-    "desc": "仅启用名单：非空时只应用列出的过滤器做压缩（空数组=不过滤、用全部默认过滤器）。按「过滤器名称」选择属推断行为（推测，官方未说明名单粒度），建议先少量试用验证效果。默认空数组。"
+    "desc": "只启用名单里列出的过滤器做压缩（非空才生效）；空数组=不限制、用全部默认过滤器。名单按压缩引擎的过滤器名称（具体名字未在文档中确认，建议先小范围试用）。默认空数组。"
   },
   "shellMinimizer.settingsPath": {
-    "name": "压缩自定义配置",
+    "name": "压缩配置文件",
     "desc_en": "Path to a custom Shell Minimizer config file passed to the compression engine instead of the built-in one (format defined by the engine, undocumented upstream); for deep customization of compression rules, empty = built-in. Default empty.",
-    "desc": "自定义 Shell Minimizer 配置文件的路径，传给压缩引擎替代内置配置（文件格式由引擎定义，官方未说明）。想深度定制压缩规则时使用；留空用内置。默认空。"
+    "desc": "自定义 Shell Minimizer 配置文件的路径，设置后传给压缩引擎替代内置配置（文件格式由引擎定义，官方未说明）。想深度定制压缩规则时用；留空用内置。默认留空。"
   },
   "shellMinimizer.sourceOutlineLevel": {
     "name": "源码轮廓档位",
-    "desc": "在 shell 里 cat/读源码文件时的轮廓模式。default=常规压缩；aggressive=更激进地折叠源码内容、保留骨架，更省但更粗。读大文件多且不关心全文时用 aggressive。默认 default。",
+    "desc": "在 shell 里 cat/读源码文件时的提纲模式：default=常规压缩（默认）；aggressive=更激进地折叠源码、只留骨架，更省但更粗。读大文件多且不关心全文时选 aggressive。",
     "options": [
       "default",
       "aggressive"
@@ -2339,82 +2339,82 @@
   "shellPath": {
     "name": "Shell 路径",
     "desc_en": "Path to the external shell executable. Ordinary bash tool calls run in the built-in POSIX shell regardless; this decides which shell named services, supported terminal routing and interactive ! commands use (a bash path also provides env/rc snapshots for sessions). Use `pwsh -Command` explicitly for PowerShell syntax. This machine: Git bash.",
-    "desc": "外部 shell 可执行文件路径。普通 bash 工具调用默认跑在内置 POSIX shell 里，不受此项影响；它决定命名服务、受支持的终端路由与交互式 ! 命令用哪个 shell（bash 路径还能为会话提供环境/rc 快照）。想用 PowerShell 语法需显式调 pwsh -Command。本机为 Git bash。"
+    "desc": "指定外部 shell 可执行文件路径。普通的 bash 工具调用默认跑在内置 POSIX shell 里不受它影响；它决定具名服务（bash name=…）、PTY 交互命令等场景用哪个 shell，同时该 shell 加载的环境变量会用于 Python 探测等。留空则自动选（Windows 上通常是 Git bash）。默认留空。"
   },
   "showHardwareCursor": {
     "name": "硬件光标",
-    "desc": "在终端显示真实硬件光标。主要是为输入法（IME）定位服务的：关掉后某些终端里输入法候选框位置可能不对。默认 true，一般不动。"
+    "desc": "显示终端真实硬件光标，主要服务于输入法（IME）定位——关掉后某些终端里输入法候选框位置可能不对。默认 true，一般不动。"
   },
   "skillful": {
     "name": "系统提示列技能",
-    "desc": "在系统提示里列出全部可用技能（名称+描述），agent 才能按任务自动匹配加载。关闭可省一段系统提示上下文，但自动匹配失效（显式 /skill: 调用不受影响）；可用 /skillful 按会话临时切换。默认 true。"
+    "desc": "在系统提示里列出全部可用技能（名称+描述），agent 才能按任务自动匹配加载。关闭能省一段系统提示上下文，但自动匹配失效（显式 /skill:<名> 调用不受影响）；也可用 /skillful 按会话临时切换。默认 true。"
   },
   "skills.customDirectories": {
     "name": "技能自定义目录",
     "desc_en": "Array of extra skill discovery directories; each immediate subdirectory of each directory is one skill (<dir>/<skill>/SKILL.md). Overrides default discovery locations when set — good for mounting a team-shared skill library. Default empty array.",
-    "desc": "额外的技能发现目录数组，每个目录下一层每子目录一个技能（<dir>/<skill>/SKILL.md）。配置后覆盖默认发现位置。适合团队共享技能库挂载。默认空数组。"
+    "desc": "额外的技能发现目录列表：每个目录下每个子目录算一个技能（<目录>/<技能名>/SKILL.md）。这是在默认发现位置之外追加，不是覆盖。相对路径按当前工作目录解析。适合挂载团队共享技能库。默认空数组。"
   },
   "skills.enableAgentsProject": {
-    "name": "项目Agent技能",
+    "name": "项目 Agents 技能目录",
     "desc_en": "Whether to discover skills from the project's .agent/skills/ and .agents/skills/ directories (walking up to the repo root); one entry point for sharing skills with Claude Code and friends — turn off for skills in untrusted repositories. Default true.",
-    "desc": "是否从项目的 .agent/skills/ 与 .agents/skills/ 目录发现技能（沿工作目录向仓库根 walking）。这是与 Claude Code 等兼容工具共享技能的入口之一；不信任某仓库的技能时可关。默认 true。"
+    "desc": "是否从项目里的 .agent/skills/ 和 .agents/skills/ 目录发现技能（沿工作目录向上找）。这是和 Claude Code 等兼容工具共享技能的入口之一；不信任某仓库的技能时可关。默认 true。"
   },
   "skills.enableAgentsUser": {
-    "name": "用户Agent技能",
+    "name": "用户 Agents 技能目录",
     "desc_en": "Whether to discover skills from the user-level ~/.agent/skills/ and ~/.agents/skills/ directories (across all projects). Turn it off to reduce scanning and name clashes if you do not use these compatibility directories. Default true.",
-    "desc": "是否从用户级 ~/.agent/skills/ 与 ~/.agents/skills/ 目录发现技能（对全部项目生效）。不用这些兼容目录可关，减少扫描与重名冲突。默认 true。"
+    "desc": "是否从用户级 ~/.agent/skills/ 和 ~/.agents/skills/ 目录发现技能（对所有项目生效）。不用这些兼容目录就关掉，可减少扫描和重名冲突。默认 true。"
   },
   "skills.enableClaudeProject": {
-    "name": "项目Claude技能",
+    "name": "项目 Claude 技能目录",
     "desc_en": "Whether to discover skills from the project's .claude/skills/ directory, making Claude Code skills available in omp too. Note this is repo-portable content — inspect a fresh clone before enabling. Default true.",
-    "desc": "是否从项目的 .claude/skills/ 目录发现技能，让 Claude Code 装的技能在 omp 里也可用。注意这是仓库可携带内容，新克隆的项目先检查再启用。默认 true。"
+    "desc": "是否从项目的 .claude/skills/ 目录发现技能，让 Claude Code 装的技能在 omp 里也能用。注意这是仓库可携带的内容，新克隆的项目建议先检查再启用。默认 true。"
   },
   "skills.enableClaudeUser": {
-    "name": "用户Claude技能",
+    "name": "用户 Claude 技能目录",
     "desc_en": "Whether to discover skills from the user-level ~/.claude/skills/ directory (sharing skills installed for Claude Code across projects). The built-in default is off; enable it to reuse a Claude skill library. Default false.",
-    "desc": "是否从用户级 ~/.claude/skills/ 目录发现技能（跨项目共享你为 Claude Code 装的技能）。omp 当前内置默认为关闭；想复用 Claude 技能库时打开。默认 false。"
+    "desc": "是否从用户级 ~/.claude/skills/ 目录发现技能（跨项目共享你为 Claude Code 装的技能）。默认关闭；想复用 Claude 技能库就打开。默认 false。"
   },
   "skills.enableCodexUser": {
-    "name": "用户Codex技能",
+    "name": "用户 Codex 技能目录",
     "desc_en": "Whether to discover skills from the user-level ~/.codex/skills/ directory (reusing Codex CLI skills). The built-in default is off; keep it off if you do not use Codex. Default false.",
-    "desc": "是否从用户级 ~/.codex/skills/ 目录发现技能（复用 Codex CLI 的技能）。omp 当前内置默认为关闭；不用 Codex 就保持关闭。默认 false。"
+    "desc": "是否从用户级 ~/.codex/skills/ 目录发现技能（复用 Codex CLI 的技能）。默认关闭；不用 Codex 就保持关闭。默认 false。"
   },
   "skills.enablePiProject": {
-    "name": "项目原生技能",
+    "name": "项目原生技能目录",
     "desc_en": "Whether to discover skills from the project's .omp/skills/ directory (native omp project skills, walking up to the repo root); the main entry for repo-bundled workflow skills — turn off for untrusted repositories. Default true.",
-    "desc": "是否从项目的 .omp/skills/ 目录发现技能（omp 原生项目技能，含向仓库根 walking）。仓库自带工作流技能的主要入口；不信任的仓库可关。默认 true。"
+    "desc": "是否从项目的 .omp/skills/ 目录发现技能（omp 原生项目技能，沿工作目录向上找）。仓库自带工作流技能的主要入口；不信任的仓库可关。默认 true。"
   },
   "skills.enablePiUser": {
-    "name": "用户原生技能",
+    "name": "用户原生技能目录",
     "desc_en": "Whether to discover skills from the user-level ~/.omp/agent/skills/ directory (your own global skill library, including managed-skills auto-learning artifacts). Turning it off disables your own library; keep it on normally. Default true.",
-    "desc": "是否从用户级 ~/.omp/agent/skills/ 目录发现技能（你自己的全局技能库，含 managed-skills 自动学习产物）。关掉等于禁用自己的技能库，一般保持开。默认 true。"
+    "desc": "是否从用户级 ~/.omp/agent/skills/ 目录发现技能（你自己的全局技能库，自动学习产出的托管技能也放这里）。关掉等于禁用自己的技能库，一般保持开。默认 true。"
   },
   "skills.enableSkillCommands": {
     "name": "技能斜杠命令",
-    "desc": "把每个技能注册为 /skill:<名称> 斜杠命令，可显式点名加载（普通任务匹配不受影响）。关掉后只能靠自动匹配。默认 true。"
+    "desc": "把每个技能注册成 /skill:<名称> 斜杠命令，可以显式点名加载；关掉则只能靠自动匹配。默认 true。"
   },
   "skills.enabled": {
     "name": "技能总开关",
     "desc_en": "Master switch for skill discovery and loading; off means no skills from any source are discovered or loaded and the Skills page of /extensions empties. One-shot equivalent: `omp --no-skills`. Default true.",
-    "desc": "技能发现与加载的总开关。关闭后所有来源的技能都不再发现/加载，/extensions 的 Skills 页也清空；等价的一次性开关还有 omp --no-skills。默认 true。"
+    "desc": "技能发现与加载的总开关：关掉后所有来源的技能都不再发现和加载。一次性替代开关还有 omp --no-skills。默认 true。"
   },
   "skills.ignoredSkills": {
     "name": "技能黑名单",
     "desc_en": "Glob-based deny-list of skills (e.g. \"*-experimental\"), never loaded even when also matched by the includeSkills allow-list; for blocking dangerous or interfering skills. Default empty array.",
-    "desc": "按 glob 名单排除技能（如 \"*-experimental\"），即使同时命中 includeSkills 白名单也不加载。屏蔽某些危险或干扰匹配的技能时使用。默认空数组。"
+    "desc": "按 glob 模式排除技能（如 \"*-experimental\"），即使同时命中 includeSkills 白名单也不加载。屏蔽危险或干扰自动匹配的技能时用。默认空数组。"
   },
   "skills.includeSkills": {
     "name": "技能白名单",
     "desc_en": "Glob-based allow-list keeping only matching skills (e.g. \"git-*\", postgres), empty = include all; converges the system prompt when too many skills pollute it. Combine with ignoredSkills: allow-list first, then deny-list. Default empty array.",
-    "desc": "按 glob 名单只保留匹配的技能（如 \"git-*\"、postgres），空数组=全部包含。技能太多污染系统提示时用来收敛。与 ignoredSkills 组合：先白名单后黑名单。默认空数组。"
+    "desc": "按 glob 模式只保留匹配的技能（如 \"git-*\"、postgres），空数组=全部包含。技能太多污染系统提示时用来收敛范围；和 ignoredSkills 组合用，先白名单后黑名单。默认空数组。"
   },
   "skills.registryUrl": {
     "name": "技能仓库地址",
-    "desc": "`omp skill` 安装/搜索/发布所用的 Skillshare 注册中心地址（https://host[:port]）。默认官方 https://skills.omp.sh；可指向自建/镜像注册中心。"
+    "desc": "omp skill 命令安装/搜索/发布技能所用的 Skillshare 注册中心地址（https://host[:port]）。默认官方 https://skills.omp.sh；可指向自建或镜像注册中心。"
   },
   "snapcompact.shape": {
     "name": "快照图像形状",
-    "desc": "snapcompact 把文本渲染成位图时使用的帧形状（用于压缩存档与内联成像），如 8x8r-bw、6x12-dim、silver16-bw 等：数字≈字形网格密度，r/u≈冗余/无冗余编码，bw=黑白、sent=语义色、dim=降亮度。auto=按当前模型自动选（默认）；换形状影响可读性与信息密度。",
+    "desc": "snapcompact 把文本渲染成位图压缩存档时用的帧形状，可选值形如 8x8r-bw、6x12-dim、silver16-bw、doc-8on16-bw 等——数字大致是字形网格密度，r/u 是编码方式，bw=黑白、sent=语义色、dim=降亮度。auto=按当前模型自动选（默认）。改形状影响压缩后文本的可读性和信息密度，一般不用动。",
     "options": [
       "auto",
       "8x8r-bw",
@@ -2438,7 +2438,7 @@
   },
   "snapcompact.systemPrompt": {
     "name": "系统提示图像化",
-    "desc": "实验性：把选定的系统提示文本渲染成高密度 PNG 附到首条用户消息（仅视觉模型）。省 token，但被成像的文本失去提示缓存。none=不成像（默认）；agents-md=只成像 AGENTS.md 部分；all=全部成像。",
+    "desc": "实验性：把部分系统提示文本渲染成高密度 PNG 图片附到首条用户消息（仅对支持视觉的模型有效）。能省 token，但被图像化的那部分文本不再享受提示词缓存。none=不成像（默认）；agents-md=只成像 AGENTS.md 部分；all=全部成像。",
     "options": [
       "none",
       "agents-md",
@@ -2447,19 +2447,19 @@
   },
   "snapcompact.toolResults": {
     "name": "工具结果图像化",
-    "desc": "实验性：把历史中较大的工具结果（read/搜索输出等）渲染成高密度 PNG 而非文本（仅视觉模型）。历史积累越久省得越多；代价是模型读图为近似、且这部分不吃提示缓存。默认 false。"
+    "desc": "实验性：把历史里较大的工具结果（read、搜索输出等）渲染成高密度 PNG 而不是文本（仅视觉模型）。历史越长省得越多；代价是模型读图是近似读取、且这部分不吃提示缓存。默认 false。"
   },
   "speech.enabled": {
     "name": "语音朗读",
-    "desc": "助手输出流式生成的同时通过扬声器朗读（本地 Kokoro 引擎）。摸鱼/听读场景有用；开会、录屏时记得关。与 speech.mode/voice 配合控制读什么、用什么声线。默认 false。"
+    "desc": "助手输出流式生成的同时通过扬声器朗读出来（本地 Kokoro 引擎）。配合 speech.mode 控制读什么、speech.voice 选声线。办公/录屏环境记得关。默认 false。"
   },
   "speech.enhanced": {
     "name": "口语化改写",
-    "desc": "朗读前先用 tiny/smol 模型把输出改写成自然口语（描述代码、去掉链接与 Markdown）再合成；失败则退回机械清理。听感明显更好，但多一次小模型调用与延迟。默认 false。"
+    "desc": "朗读前先用 tiny/smol 模型把助手输出改写成自然口语（把代码描述出来、去掉链接和 Markdown）再合成语音；失败则退回机械清理。听感明显更好，但每次多一次小模型调用和一点延迟。默认 false。"
   },
   "speech.mode": {
     "name": "朗读范围",
-    "desc": "朗读什么内容。all=助手消息+思考都读；assistant=只读助手消息（默认）；yield=只在整轮结束的最终消息上读一次。控制噪音量的关键开关。",
+    "desc": "朗读哪些内容：all=助手消息+思考都读；assistant=只读助手消息（默认）；yield=只在整轮结束的最终消息读一次。控制噪音量的开关。",
     "options": [
       "all",
       "assistant",
@@ -2468,7 +2468,7 @@
   },
   "speech.voice": {
     "name": "朗读声线",
-    "desc": "朗读使用的 Kokoro 声线。af_*=美/英女声，am_*=美男声，bf_*/bm_*=英式男女声（如 af_heart 温暖女声、am_fenrir 低沉男声）。纯偏好设置。默认 af_heart。",
+    "desc": "朗读用的 Kokoro 声线：af_*=美式女声（af_heart、af_bella 等）、am_*=美式男声（am_michael、am_fenrir 等）、bf_*/bm_*=英式女声/男声。纯偏好设置，逐个点名试听挑顺耳的。默认 af_heart。",
     "options": [
       "af_heart",
       "af_bella",
@@ -2485,12 +2485,12 @@
     ]
   },
   "speechgen.enabled": {
-    "name": "TTS合成工具",
-    "desc": "为 agent 启用 tts 工具：可把文本合成为语音文件（本地 Kokoro 引擎，或 xAI Grok Voice 云端合成）。供生成配音/语音产物类任务使用；不用语音产物可关。默认 false。"
+    "name": "TTS 合成工具",
+    "desc": "给 agent 启用 tts 工具：能把文本合成语音文件（本地 Kokoro 引擎，或 xAI Grok Voice 云端合成）。要做配音/语音产物类任务时打开；纯写代码用不到可关。默认 false。"
   },
   "spelling.autocomplete": {
     "name": "拼写联想",
-    "desc": "输入时在行内显示预测词补全提示：⇥ 接受并补空格，→ 只补词。off=关；auto=自动选实现；ngram=本地 n-gram 统计；smollm=小语言模型预测（更聪明更费）；apple=macOS 系统联想。默认 auto。",
+    "desc": "输入提示词时行内显示预测的单词补全：按 ⇥ 接受并补一个空格，按 → 只补词不补空格。off=关；auto=自动选实现（默认）；ngram=本地 n-gram 统计；smollm=小语言模型预测（更聪明但更耗资源）；apple=macOS 系统联想。非英文输入多可考虑关。",
     "options": [
       "off",
       "auto",
@@ -2501,15 +2501,15 @@
   },
   "spelling.autocorrect": {
     "name": "自动纠错",
-    "desc": "完成一个词后自动应用高置信度的 macOS 拼写纠正。仅 macOS 可用；纠正的是「你输入的提示词」，改错词能防误解，但也可能自作主张。默认 false。"
+    "desc": "一个单词输入完成后自动应用 macOS 高置信度的拼写纠正。仅 macOS 有效，其他平台无效果。能防错字误导 agent，但也可能自作主张把对的改错。默认 false。"
   },
   "spelling.typoDetection": {
     "name": "错词标记",
-    "desc": "用当前 macOS 词典标记提示中拼错的词（仅标红提示，不改内容）。让你在发送前发现错字；非英文输入或误报多时可关。默认 true。"
+    "desc": "用当前 macOS 词典把提示词里拼错的词标记出来（仅标红提示、不改内容），让你在发送前发现错字。仅 macOS 有效；非英文输入或误报多时可关。默认 true。"
   },
   "startup.changelogMode": {
     "name": "更新说明形态",
-    "desc": "omp 更新后更新说明的初始展示形态。summary=先显示摘要（默认）；expanded=直接展开全部细节；hidden=不显示。关注发版内容选 summary/expanded，嫌打扰选 hidden。",
+    "desc": "omp 更新后启动时更新说明的初始展示形态：summary=先显示摘要（默认）；expanded=直接展开全部细节；hidden=不显示。关注发版内容选 summary/expanded，嫌打扰选 hidden。",
     "options": [
       "summary",
       "expanded",
@@ -2518,27 +2518,27 @@
   },
   "startup.checkUpdate": {
     "name": "启动检查更新",
-    "desc": "omp 启动时检查是否有新版本提示（配合 omp update 与 update.channel）。离线/内网环境或不想被打扰可关，需手动 omp update。默认 true。"
+    "desc": "omp 启动时检查有没有新版本可用（配合 omp update 和 update.channel）。离线/内网环境或不想被打扰可关，需要自己记得 omp update。默认 true。"
   },
   "startup.quiet": {
     "name": "静默启动",
-    "desc": "跳过欢迎屏与启动状态消息，直接进入可用状态，界面更干净。代价是启动期的提示（如新功能、连接状态）也看不到。默认 true。"
+    "desc": "跳过欢迎屏和启动状态消息，直接进入可用状态，界面更干净。代价是启动期的提示（新功能、连接状态）也看不到。默认 false。"
   },
   "startup.setupWizard": {
     "name": "引导步骤提示",
-    "desc": "每个 setup 版本新增的引导步骤展示一次（一次性引导，配合 setupVersion 记录进度）。老手可关，避免版本升级后反复弹引导。默认 true。"
+    "desc": "每个 setup 版本新增的引导步骤只展示一次（配合 setupVersion 记录进度）。老手可关，避免版本升级后反复弹引导。默认 true。"
   },
   "startup.showSplash": {
     "name": "启动动画",
-    "desc": "正常交互启动时显示完整的动画 setup splash（无需重跑 setup）。纯视觉仪式感；startup.quiet 开着时仍会被抑制。默认 false。"
+    "desc": "正常交互式启动时显示完整的动画 splash（纯仪式感，不会重跑设置向导）。startup.quiet 开着时仍会被抑制。默认 false。"
   },
   "statusLine.compactThinkingLevel": {
     "name": "思考档位紧凑显示",
-    "desc": "状态栏把思考档位显示为模型名旁的单个图标，而不是单独的 \" · <档位>\" 后缀，更省横向空间。纯显示偏好。默认 true。"
+    "desc": "状态栏把思考档位显示为模型名旁的单个图标，而不是单独的 \" · <档位>\" 后缀，省横向空间。纯显示偏好。默认 true。"
   },
   "statusLine.contextLine": {
-    "name": "上下文用量显示",
-    "desc": "状态栏左右段之间那条线如何反映上下文占用（仅 box 编辑器）。off=不显示；percentage=纯百分比；annotated=百分比+标注；embedded=嵌入该行显示（默认）。关注上下文水位（何时该压缩）就别选 off。",
+    "name": "上下文用量线",
+    "desc": "状态栏左右两段之间那条线怎么反映上下文用量（仅 box 输入区布局）：off=不显示；percentage=纯百分比；annotated=百分比+标注；embedded=嵌入该行显示（默认）。想盯着上下文水位（什么时候该压缩）就别选 off。",
     "options": [
       "off",
       "percentage",
@@ -2549,11 +2549,11 @@
   "statusLine.leftSegments": {
     "name": "状态栏左段",
     "desc_en": "Custom segments and order for the left side of the status line (default [\"vim\",\"model\",\"mode\",\"path\",\"git\",\"pr\"]); only effective when statusLine.preset is custom, ignored by other presets. Available segments are the 27 statusLine segments (model/git/cost/context_pct, etc.).",
-    "desc": "自定义状态栏左侧段及其顺序（默认 [\"vim\",\"model\",\"mode\",\"path\",\"git\",\"pr\"]）。注意：仅 statusLine.preset 为 custom 时生效，其他预设忽略此项。可用段名见 statusLine 27 个段（model/git/cost/context_pct 等）。"
+    "desc": "自定义状态栏左侧显示哪些段、按什么顺序（默认 [\"vim\",\"model\",\"mode\",\"path\",\"git\",\"pr\"]）。可选段名有 27 个，如 model、git、cost、context_pct、session_name、subagents、time 等。注意只有 statusLine.preset 选 custom 时才生效，其他预设会忽略这项。"
   },
   "statusLine.preset": {
     "name": "状态栏预设",
-    "desc": "预置状态栏方案。default=全量最全；minimal=极简（丢模型名）；compact=紧凑保留模型/花费/上下文（当前取值）；full/nerd=信息最多（需宽屏/更全字体）；ascii=纯 ASCII；custom=用你自己配的左右段。非 custom 时完全忽略 leftSegments/rightSegments。",
+    "desc": "预置状态栏方案：default=信息最全；minimal=极简（只剩 vim/path/git 等基本段）；compact=紧凑但保留模型/花费/上下文；full/nerd=信息最多（需要宽屏和更全的字体）；ascii=纯 ASCII 不乱码；custom=用你自己配的 leftSegments/rightSegments。非 custom 时完全忽略左右段自定义。默认 default。",
     "options": [
       "default",
       "minimal",
@@ -2567,16 +2567,16 @@
   "statusLine.rightSegments": {
     "name": "状态栏右段",
     "desc_en": "Custom segments and order for the right side of the status line (default [\"session_name\",\"token_total\",\"cost\",\"context_pct\"]); only effective when statusLine.preset is custom, ignored by other presets.",
-    "desc": "自定义状态栏右侧段及其顺序（默认 [\"session_name\",\"token_total\",\"cost\",\"context_pct\"]）。仅 statusLine.preset 为 custom 时生效，其他预设忽略此项。"
+    "desc": "自定义状态栏右侧显示哪些段、按什么顺序（默认 [\"session_name\",\"token_total\",\"cost\",\"context_pct\"]）。可选段名同左段（共 27 个）。仅 statusLine.preset 为 custom 时生效。"
   },
   "statusLine.segmentOptions": {
     "name": "状态栏段选项",
     "desc_en": "Fine-tuning options for individual status line segments, recorded like {\"<segment>\": {...}}, empty object by default = segment defaults. Advanced customization; available keys vary by segment, most users need not touch it.",
-    "desc": "对个别状态栏段的微调选项（记录形如 {\"<段名>\": {...}}，默认空对象=全部用段默认值）。属高级定制项，具体可用键随段而异；一般用户不必碰。"
+    "desc": "对个别状态栏段的微调选项，形如 {\"<段名>\": {...}}，比如 path 段可配 abbreviate/maxLength、git 段可配 showBranch 等（具体可用键随段而异）。高级定制项，一般不必碰。默认空对象。"
   },
   "statusLine.separator": {
     "name": "状态栏分隔符",
-    "desc": "状态栏各段之间分隔符样式。powerline=粗三角；powerline-thin=细三角（默认）；slash=斜杠；pipe=竖线；block=色块；none=无；ascii=纯 ASCII。需终端支持 Powerline/Nerd 字体，乱码时换 ascii 或 slash。",
+    "desc": "状态栏各段之间的分隔符样式：powerline=粗三角、powerline-thin=细三角（默认）、slash=斜杠、pipe=竖线、block=色块、none=无、ascii=纯 ASCII。powerline 系需要终端装了 Nerd/Powerline 字体，否则显示方块乱码就换 slash 或 ascii。",
     "options": [
       "powerline",
       "powerline-thin",
@@ -2589,44 +2589,44 @@
   },
   "statusLine.sessionAccent": {
     "name": "会话主题色",
-    "desc": "用当前会话名的颜色作为编辑框边框与状态栏间隙的强调色，多会话时一眼区分在哪个会话里打字。不喜欢花哨可关。默认 true。"
+    "desc": "用当前会话名的颜色当编辑框边框和状态栏间隙的强调色，多会话并行时一眼看出在哪个会话里打字。不喜欢花哨可关。默认 true。"
   },
   "statusLine.showHookStatus": {
-    "name": "Hook状态显示",
-    "desc": "在状态栏下方显示 hook（钩子脚本）的状态消息，hook 出错/被拦截时能直接看到原因。配置了 hookify/钩子的用户建议保留。默认 true。"
+    "name": "Hook 状态显示",
+    "desc": "在状态栏下方显示 hook（钩子脚本）的状态消息，hook 拦截了工具调用或出错时能直接看到原因。配置了 hookify/hooks 的用户建议保留。默认 true。"
   },
   "statusLine.transparent": {
     "name": "状态栏透明",
-    "desc": "状态栏用终端默认背景色而非主题的 statusLineBg。开了 Powerline 端帽会自动去掉（缺少对比填充无法衔接）。半透明终端背景配主题色发虚时打开。默认 false。"
+    "desc": "状态栏用终端默认背景色而不用主题的 statusLineBg。开了之后 Powerline 风格的末端封口会被去掉（它需要对比色填充才能和周围衔接）。半透明终端背景下主题色发虚时打开。默认 false。"
   },
   "steeringMode": {
     "name": "插话处理顺序",
-    "desc": "agent 工作时你排队插入的消息如何处理。one-at-a-time=一次只递一条，处理完再给下一条（默认，方向可控）；all=一次性把队列全递给 agent（传达完整意图但方向可能被打乱）。控制「边跑边改需求」的粒度。",
+    "desc": "agent 干活时你排队插入的消息怎么处理：one-at-a-time=一次只递一条、处理完再给下一条（默认，方向更可控）；all=一次性把队列全递给 agent（意图传达完整但可能打乱它当前方向）。控制「边跑边改需求」的粒度。",
     "options": [
       "all",
       "one-at-a-time"
     ]
   },
   "stream.redactPatterns": {
-    "name": "流脱敏正则",
-    "desc": "额外的正则表达式数组：命中内容在每一行流式输出显示前被抹除（在 env/secrets.yml 值与内置凭据形状之上叠加）。处理日志里敏感内网信息时用。默认空数组。"
+    "name": "直播脱敏正则",
+    "desc": "额外的正则表达式列表：omp stream 直播时每行内容命中就被抹掉，叠加在 env/secrets.yml 的值和内置凭据格式之上。日志里有敏感内网信息时用。默认空数组。"
   },
   "stream.serverUrl": {
     "name": "直播服务地址",
-    "desc": "`omp stream` 使用的直播服务器 Base URL（https://host[:port]），观看地址为 <base>/<你的 Stencil 用户名>。把会话实时推流给他人围观时用；默认官方 https://live.omp.sh。"
+    "desc": "omp stream（把会话实时直播给别人围观）用的服务器地址（https://host[:port]），观众在 <地址>/<你的 Stencil 用户名> 看。默认官方 https://live.omp.sh；可指向自建直播服务器。"
   },
   "stt.enabled": {
     "name": "语音输入",
-    "desc": "启用麦克风语音转文字输入：按住快捷键说话转成提示词文本。本地/所选引擎可用时才有意义；开会环境慎开麦克风。默认 false。"
+    "desc": "启用麦克风语音转文字输入：按住快捷键说话转成提示词文本（本地离线识别模型）。开启后首次要下载模型；开会等场合注意麦克风隐私。默认 false。"
   },
   "stt.language": {
-    "name": "识别语言",
+    "name": "语音识别语言",
     "desc_en": "Language code for speech recognition, default \"en\" (English); for Chinese voice input set zh or zh-CN — accuracy differs markedly. Behavior when empty depends on the engine.",
-    "desc": "语音识别的语言代码，默认 \"en\"（英语）。中文语音输入建议改成 zh 或 zh-CN，识别准确率会明显不同。留空行为视引擎而定。"
+    "desc": "语音识别用的语言代码，默认 \"en\"（英语）。中文语音输入建议改成 zh，识别准确率会明显不同。具体支持的代码列表随识别引擎而定。"
   },
   "stt.submitTrigger": {
     "name": "语音提交时机",
-    "desc": "语音听写何时自动提交。never=从不自动提交（默认，手动确认）；release=松开按键且≥2 词；release-complete=松开且检测到完整句；say-submit=说出 submit 关键词。控制误发与效率的平衡。",
+    "desc": "语音听写什么时候自动提交：never=从不自动提交、手动确认（默认，最不容易误发）；release=松开按键且至少 2 个词；release-complete=松开且检测到完整句子；say-submit=说出 submit 这个词时提交（该词会被剥掉）。在效率和误发之间取平衡。",
     "options": [
       "never",
       "release",
@@ -2636,7 +2636,7 @@
   },
   "symbolPreset": {
     "name": "符号字形风格",
-    "desc": "界面图标/符号用的字形集。unicode=Unicode 符号（默认，通用）；nerd=Nerd Font 图标（更精致，需装 Nerd Font，否则乱码方块）；ascii=纯 ASCII（任何终端都不乱）。终端字体不对先换 ascii。",
+    "desc": "界面图标和符号用哪套字形：unicode=Unicode 符号（默认，通用）；nerd=Nerd Font 图标（更精致，但必须装 Nerd Font，否则全是方块）；ascii=纯 ASCII（任何终端都不乱码）。终端字体不对先换 ascii。",
     "options": [
       "unicode",
       "nerd",
@@ -2644,50 +2644,50 @@
     ]
   },
   "task.agentAdvisor": {
-    "name": "按代理Advisor覆盖",
+    "name": "按代理 Advisor 覆盖",
     "desc_en": "Per-agent (agent id) overrides of advisor (advisory review) configuration, shaped like {\"<agent>\": {...}}; enable or configure advisor review for one subagent without touching global settings. Empty object by default = follow global.",
-    "desc": "按代理名（agent id）覆盖其 advisor（顾问审查）配置的记录，形如 {\"<代理名>\": {...}}。可让某个子代理单独启用/配置 advisor 审查，而不影响全局。默认空对象=跟随全局。"
+    "desc": "按子代理名（agent id）单独覆盖它的 advisor（顾问审查）配置，形如 {\"<代理名>\": {...}}。可让某个子代理单独开/关或配置审查，不影响全局 advisor 设置。默认空对象=全部跟随全局。"
   },
   "task.agentCompactionThresholdOverrides": {
     "name": "按代理压缩阈值",
     "desc_en": "Per-agent overrides of the compaction trigger threshold; raise it for long-running subagents (fewer interruptions) or lower it for short ones (save context). Empty object by default = use the global compaction threshold.",
-    "desc": "按代理名覆盖其上下文压缩（compaction）触发阈值的记录。长跑型子代理可调高阈值少打扰，短平快子代理可调低省上下文。默认空对象=用全局 compaction 阈值。"
+    "desc": "按子代理名单独覆盖它的上下文压缩触发阈值，形如 {\"<代理名>\": <阈值>}。长跑型子代理可调高少打扰，短平快的可调低省上下文。默认空对象=用全局 compaction 阈值。"
   },
   "task.agentIdleTtlMs": {
     "name": "子代理驻留时长",
-    "desc": "空闲子代理在内存里存活多久（毫秒），到期落盘（park）暂存，被再次消息/恢复时自动复活。0=永不落盘、直到进程退出。调小省内存，调大减少复活开销。默认 420000（7 分钟）。"
+    "desc": "空闲子代理在内存里驻留多久（毫秒），到期落盘暂存（park），你再发消息或恢复它时自动唤醒。0=永不落盘、驻留到进程退出。调小省内存，调大减少复活开销。默认 420000（7 分钟）。"
   },
   "task.agentModelOverrides": {
     "name": "按代理模型覆盖",
     "desc_en": "Per-agent model overrides, shaped like {\"<agent>\": \"provider/model-id\"}; give a specific subagent (e.g. a reviewer) a different model than its role resolves to. Empty object by default = resolve by role.",
-    "desc": "按代理名覆盖所用模型的记录，形如 {\"<代理名>\": \"provider/model-id\"}。给特定子代理（如审查型）指定与角色不同的模型。默认空对象=全部按角色解析。"
+    "desc": "按子代理名单独指定用什么模型，形如 {\"<代理名>\": \"provider/model-id\"}。比如让审查型代理用强模型、机械型代理用快模型，而不改全局角色分配。默认空对象=全部按角色解析。"
   },
   "task.agentPrewalk": {
     "name": "按代理预走覆盖",
     "desc_en": "Per-agent overrides of the prewalk (plan first, then hand off to a fast model) switch, configurable in the /agents panel; also applies to user agents with prewalk frontmatter. Empty object by default = follow global logic such as task.prewalk.",
-    "desc": "按代理名覆盖其 prewalk（先规划后交棒快模型）开关的记录，可在 /agents 面板配置；对配置了 prewalk frontmatter 的用户代理同样生效。默认空对象=跟随 task.prewalk 等全局逻辑。"
+    "desc": "按子代理名单独覆盖它的 prewalk（先强模型规划、首次编辑时交棒给便宜模型）开关，形如 {\"<代理名>\": true/false}，可在 /agents 面板配置；对带 prewalk frontmatter 的用户代理也生效。默认空对象=跟随 task.prewalk 等全局逻辑。"
   },
   "task.agentServiceTierOverrides": {
     "name": "按代理服务档覆盖",
     "desc_en": "Per-agent overrides of the service tier, e.g. let a critical subagent use the priority tier while the rest stay standard. Empty object by default = inherit the main agent / global tier setting.",
-    "desc": "按代理名覆盖其服务档（service tier）的记录。可让关键子代理用 priority 档、其余用标准档。默认空对象=继承主代理/全局 tier 设置。"
+    "desc": "按子代理名单独覆盖它的服务档（service tier），让关键子代理用 priority 档、其余用标准档。默认空对象=继承主代理/全局 tier 设置。"
   },
   "task.batch": {
     "name": "批量派发模式",
-    "desc": "task 工具采用批量形态：一次调用携带 {context, tasks[]}，每项一个子代理，共享 context 前置注入每个任务。async.enabled 时各自后台跑，否则阻塞等合并结果。关闭则退回单次单代理的扁平模式。默认 true。"
+    "desc": "task 工具用批量形态：一次调用携带 { context, tasks[] }，每项一个子代理，共享的 context 会前置注入每个任务；async.enabled 开启时各子代理作为独立后台任务跑。关闭则退回一次只派一个代理的扁平模式。默认 true。"
   },
   "task.completionProbeMs": {
-    "name": "子代理完成度探测间隔",
-    "desc": "每隔多少毫秒，通过一次缓存的旁路请求（类似 /btw）向仍在运行的子代理询问任务完成度估计，结果显示在 wait 与 task 视图的子代理旁。默认 120000（2 分钟）。0=关闭。调小→更频繁汇报进度但多耗 token；调大→更省但状态滞后。"
+    "name": "完成度探测间隔",
+    "desc": "每隔多少毫秒用一次缓存的旁路请求（类似 /btw）问还在跑的子代理「完成度估计」，估计值显示在 wait 和 task 视图的子代理旁边。默认 120000（2 分钟）。0=关闭。调小进度汇报更勤但每次探测多花一点 token；调大更省但状态滞后。"
   },
   "task.disabledAgents": {
     "name": "禁用代理名单",
     "desc_en": "Array of built-in/extension agents to disable — agents on the list can no longer be dispatched by the task tool; use it to block expensive or error-prone specialist agents. Empty by default = all available.",
-    "desc": "要禁用的内置/扩展代理名单数组，名单内代理不再可被 task 工具派发。屏蔽昂贵或易跑偏的专用代理时使用。默认空数组=全部可用。"
+    "desc": "要禁用的内置/扩展代理名列表，名单内的代理不能被 task 工具派发。屏蔽昂贵的或容易跑偏的专用代理时用。默认空数组=全部可用。"
   },
   "task.eager": {
     "name": "委派倾向",
-    "desc": "推动把工作委派给子代理的积极程度。default=正常判断；preferred=倾向委派（主代理更快腾出上下文，token 总量上升）；always=强烈要求委派。委派多了并行快但费用与失真风险升高。默认 default。",
+    "desc": "推动把工作委派给子代理的积极程度：default=正常判断（默认）；preferred=倾向委派，主代理更快腾出上下文但总 token 变多；always=强烈要求委派。委派多了并行快，但费用和转述失真的风险也升高。",
     "options": [
       "default",
       "preferred",
@@ -2696,19 +2696,19 @@
   },
   "task.enableEffort": {
     "name": "派发力度参数",
-    "desc": "在 task 派发上暴露可选 effort 参数，允许调用方为每个子代理指定思考档位（受 task.maxEffort 封顶）。关掉则子代理思考档完全由角色/模型决定。默认 false。"
+    "desc": "在 task 派发上暴露可选的 effort 参数，让调用方可以给每个子代理指定思考档位（受 task.maxEffort 封顶）。关掉则子代理的思考档完全由角色/模型决定。默认 false。"
   },
   "task.enableLsp": {
-    "name": "子代理用LSP",
-    "desc": "允许 task 子代理使用 lsp 工具（定义跳转、引用查找、诊断等）。默认关闭以让子代理更便宜；需要 LSP 级代码情报的委派任务再开，代价是更多 token。默认 true（当前构建默认为开）。"
+    "name": "子代理可用 LSP",
+    "desc": "允许 task 派发的子代理使用 lsp 工具（定义跳转、引用查找、诊断等代码智能）。默认关闭以让子代理更省 token；需要 LSP 级代码情报的委派任务再打开。默认 false。"
   },
   "task.isolation.apply": {
     "name": "隔离结果自动应用",
-    "desc": "隔离运行成功的变更自动应用到父检出（工作区）；关闭则保留 patch/branch 产物由你手动合并。开着最省事；想审查每份产物再落地就关。默认 true。"
+    "desc": "隔离运行的子代理成功后，自动把它的变更应用回父检出目录；关闭则保留补丁/分支产物由你手动合并。开着最省事；想逐一审查产物再落地就关。仅在 task.isolation.enabled 开启时有意义。默认 true。"
   },
   "task.isolation.commits": {
     "name": "隔离提交风格",
-    "desc": "隔离任务在嵌套仓库里产生提交时的信息风格。generic=固定模板（默认）；ai=AI 生成提交信息（更可读，多花一次小模型调用）。",
+    "desc": "隔离任务在嵌套仓库里产生提交时用什么风格的提交信息：generic=固定通用模板（默认）；ai=AI 生成（更可读，但每次多花一次小模型调用）。",
     "options": [
       "generic",
       "ai"
@@ -2716,11 +2716,11 @@
   },
   "task.isolation.enabled": {
     "name": "子代理隔离运行",
-    "desc": "让子代理在检出的隔离副本（worktree 副本）里干活，完成后把变更整合回来，避免并发子代理互相踩文件。代价是副本拷贝开销与整合步骤。需要工作区隔离的功能分支工作流再开。默认 false。"
+    "desc": "让子代理在当前检出目录的隔离副本（worktree 副本）里干活，完成后再把变更整合回来，避免多个并发子代理互相踩文件。代价是副本拷贝开销和整合步骤。需要工作区隔离的并行任务再开。默认 false。"
   },
   "task.isolation.merge": {
     "name": "隔离整合方式",
-    "desc": "隔离任务的变更如何整合回父检出。patch=生成补丁应用（默认，轻量）；branch=分支合并（保留分支历史，适合要审查/追溯的场景）。仅在 task.isolation.enabled 开启时有意义。",
+    "desc": "隔离任务的变更怎么整合回父检出：patch=生成补丁应用（默认，轻量）；branch=合并分支（保留分支历史，适合要审查/追溯的场景）。仅在 task.isolation.enabled 开启时有意义。",
     "options": [
       "patch",
       "branch"
@@ -2728,11 +2728,11 @@
   },
   "task.maxConcurrency": {
     "name": "子代理并发上限",
-    "desc": "同时运行的子代理数量上限。默认 4。调大→批量任务更快但 API 并发/限流压力与费用峰值更高；调小→更稳更省。"
+    "desc": "最多同时跑几个子代理。默认 32。调大批量任务更快但 API 并发/限流压力和费用峰值更高；调小更稳更省。注意这是全局上限，provider 级限制（如 providers.ollama-cloud.maxConcurrency）另算。"
   },
   "task.maxEffort": {
     "name": "派发力度上限",
-    "desc": "task 工具按次派发 effort 提示允许的最高思考档。max=不设限（默认，保留模型完整范围）；调低（如 high）可防止调用方把子代理抬到顶档烧 token。",
+    "desc": "task 工具每次派发时 effort 提示允许的最高思考档位：max=不设限（默认，保留模型完整范围）；调低（比如 high）可防止调用方把子代理抬到顶档烧 token。配合 task.enableEffort 使用。",
     "options": [
       "minimal",
       "low",
@@ -2744,55 +2744,55 @@
   },
   "task.maxRecursionDepth": {
     "name": "嵌套派发深度",
-    "desc": "子代理可以再派发自己子代理的层数上限。默认 2（即孙代理为止）。调大→更深分解但费用与失控风险上升；0/1 限制层层委派。"
+    "desc": "子代理还能再派发自己子代理的层数上限。默认 2（孙代理为止）。调大可以更深分解任务，但费用和失控风险上升；设 0/1 可限制层层委派。"
   },
   "task.maxRuntimeMs": {
     "name": "子代理硬时限",
-    "desc": "每个子代理的墙钟硬上限（毫秒），到点正常中止并带 timed out 原因，是对推理层看门狗漏网的供应商侧挂起的兜底。0=不限（默认）。无人值守批量跑建议设个上限。"
+    "desc": "每个子代理的墙钟硬上限（毫秒），到点正常中止、原因标记为 timed out，是对推理层看门狗漏网的供应商侧挂起的兜底防线。0=不限（默认）。无人值守批量跑建议设个上限。"
   },
   "task.prewalk": {
     "name": "通用代理预走",
-    "desc": "为内置通用 task 子代理启用 prewalk：先在其解析出的模型上规划并开工，到首次编辑/写入时交棒给 smol 角色继续。省费用；实施质量取决于 smol 模型。仅影响通用 task 代理（agentPrewalk/代理 frontmatter 不受此开关限制）。默认 false。"
+    "desc": "给内置通用 task 子代理启用 prewalk：先在其解析出的模型上规划并开工，到首次编辑/写入时交棒给 smol 角色继续。省费用，但实施质量取决于 smol 模型。仅影响通用 task 代理——task.agentPrewalk 按代理覆盖和代理 frontmatter 里的 prewalk 不受此开关限制。默认 false。"
   },
   "task.showResolvedModelBadge": {
     "name": "显示实际模型",
-    "desc": "task 面板状态行显示每个子代理实际解析使用的模型 ID，方便核查「这个子代理到底用的哪个模型/花了什么价」。默认 true。"
+    "desc": "task 面板状态行显示每个子代理实际解析用的模型 ID，方便核查「这个子代理到底用了哪个模型、什么价位」。默认 false。"
   },
   "task.softRequestBudget": {
     "name": "子代理请求预算",
-    "desc": "每个子代理每次运行的助手请求软预算。默认 200。越线注入收尾引导（见 softRequestBudgetNotice）；到 1.5 倍强制停止并要求交出已有结论。0=关闭护栏。内置 scout/sonic 代理有更低的内置上限，设得比它低才对它们生效。"
+    "desc": "每个子代理单次运行的助手请求软预算（默认 200）。越过预算会注入一条收尾引导（见 task.softRequestBudgetNotice）；到 1.5 倍时强制停止并要求交出已有结论。0=关闭护栏。内置 scout/sonic 代理有更低的内置上限，设得比它们低才对它们生效。"
   },
   "task.softRequestBudgetNotice": {
     "name": "预算收尾提醒",
-    "desc": "子代理越过软请求预算时注入一条收尾引导，让它在 1.5 倍强制停止前主动汇报成果。关掉则到 1.5 倍直接硬停，可能损失未交出的发现。默认 true。"
+    "desc": "子代理越过软请求预算时注入一条收尾引导，让它在到 1.5 倍被强制停止之前主动汇报已有成果。关掉则到 1.5 倍直接硬停，可能损失没交出来的发现。默认 true。"
   },
   "task.speculativeLaunch": {
     "name": "批量投机启动",
-    "desc": "批量派发时某个 tasks[] 条目流式解析完就立刻启动对应子代理，不等整批解析完；若该调用最终校验失败/被拦截/参数变化则中止已启动者。要求 task 审批已自动放行且无扩展工具生命周期钩子。默认 true。"
+    "desc": "批量派发时某个 tasks[] 条目流式解析完就立即启动对应子代理，不等整批解析完——并行度更高、启动更快。若这个调用最终校验失败/被拦截/参数变化，已启动的代理会被中止。要求 task 审批已自动放行、且没有扩展工具生命周期钩子。默认 true。"
   },
   "tasks.todoClearDelay": {
     "name": "清单清除延迟",
-    "desc": "已完成/已弃用的待办在 todo 界面组件里保留多少秒后再移除，留个「刚做完了什么」的可视尾巴。默认 60。"
+    "desc": "已完成或已放弃的待办在 todo 组件里保留多少秒再移除，留个「刚做完了什么」的可视尾巴。默认 60。"
   },
   "telemetry.otlpExportEnabled": {
-    "name": "OTEL遥测导出",
-    "desc": "允许 omp 按 OTEL_* 环境变量端点导出 traces/logs/metrics（OpenTelemetry 标准遥测）。对接观测平台（自建 Grafana/Jaeger 等）时开；不配 OTEL_* 变量则无实际外发。改动下次启动生效。默认 true。"
+    "name": "OTEL 遥测导出",
+    "desc": "允许 omp 按 OTEL_* 环境变量配置的端点导出 traces/logs/metrics（OpenTelemetry 标准遥测）。对接观测平台（自建 Grafana/Jaeger 等）时用；不配 OTEL_* 变量则没有实际外发。改动下次启动生效。默认 true。"
   },
   "temperature": {
     "name": "采样温度",
-    "desc": "采样温度：0=接近确定性输出，1=更有创造性；-1=用供应商默认（默认值）。编码任务通常不需要动；写文案想发散可略调高。过高会伤代码正确性。"
+    "desc": "控制模型输出的随机性：0=接近确定性输出，1=更有创造性。-1=用供应商默认（默认值）。编码任务通常不用动；写文案想发散可以略调高，过高会伤代码正确性。仅对支持该参数的模型生效。"
   },
   "terminal.showImages": {
     "name": "终端内联图片",
-    "desc": "在终端内直接渲染图片（Kitty 协议/Sixel 等支持的终端），粘贴截图、读图结果直观可见。不支持的终端自动无效果。默认 true。"
+    "desc": "在终端里直接渲染图片（需要终端支持 Kitty 图形协议/Sixel 等），粘贴截图、读图结果直观可见。不支持的终端自动没效果。默认 true。"
   },
   "terminal.showProgress": {
     "name": "终端进度指示",
-    "desc": "agent 运行或上下文维护期间发送 OSC 9;4 不确定进度序列，让支持的终端标签页显示「正在跑」的进度动画（Tern 终端恒开）。默认 true。"
+    "desc": "agent 运行或上下文维护期间发送 OSC 9;4 不确定进度序列，支持的终端标签页会显示「正在跑」的进度动画（Tern 终端里恒开）。默认 false；想要系统级进度提醒可以开。"
   },
   "textVerbosity": {
     "name": "回复详略",
-    "desc": "OpenAI Responses 与 Codex 系模型的输出详略程度。low=极简；medium=适中（默认）；high=详尽。只影响 OpenAI 系 API 的 verbosity 参数，其他供应商无效果。",
+    "desc": "OpenAI Responses 和 Codex 系模型的回复详略参数：low=极简；medium=适中（默认）；high=详尽。只影响 OpenAI 系 API 的 verbosity 字段，其他供应商设置无效。",
     "options": [
       "low",
       "medium",
@@ -2801,45 +2801,45 @@
   },
   "theme.dark": {
     "name": "深色主题",
-    "desc": "终端为深色背景时使用的主题名（内置如 titanium、catppuccin-* 等，自定义主题也可）。当前为 titanium。用 /theme 或 omp config set theme.dark <名称> 切换，即时生效。"
+    "desc": "终端是深色背景时用哪套主题（内置 titanium、catppuccin 系列等，也可用自定义主题）。用 /theme 或在设置里切换即时生效。默认 titanium。终端会按背景深浅在 dark/light 两套间自动切换。"
   },
   "theme.light": {
     "name": "浅色主题",
-    "desc": "终端为浅色背景时使用的主题名（当前 light）。终端按背景色深浅自动在 dark/light 两套间切换，无需手动跟随。"
+    "desc": "终端是浅色背景时用哪套主题。默认 light。和 theme.dark 配对使用，终端按背景色自动二选一。"
   },
   "thinkingBudgets.high": {
-    "name": "思考预算high",
+    "name": "思考预算 high 档",
     "desc_en": "Maximum thinking-token budget for the high level, for models that accept a thinking-budget parameter; higher levels think deeper but slower and pricier. Default 16384 — normally adjust via /think or in-session commands; editing budgets per level is fine-tuning.",
-    "desc": "high 档思考的最大思考 token 预算，供支持思考预算参数的模型使用。档位越高想得越深但更慢更贵。默认 16384。一般用 /think 或会话内指令调档即可，逐项改预算属精调。"
+    "desc": "high 档思考允许的最大思考 token 数（供支持思考预算参数的模型用）。档位越高想得越深但更慢更贵。默认 16384。一般用 /think 调档即可，逐项改预算属于精调。"
   },
   "thinkingBudgets.low": {
-    "name": "思考预算low",
+    "name": "思考预算 low 档",
     "desc_en": "Maximum thinking-token budget for the low thinking level. Default 2048 — for light decisions, optimized for speed and cost.",
-    "desc": "low 档思考的最大思考 token 预算。默认 2048。低档适合轻决策，贵在快与省。"
+    "desc": "low 档思考的最大思考 token 数。默认 2048。低档适合轻决策，贵在快和省。"
   },
   "thinkingBudgets.max": {
-    "name": "思考预算max",
+    "name": "思考预算 max 档",
     "desc_en": "Maximum thinking-token budget for the max (highest) thinking level. Default 32768 — the priciest tier, used with ultrathink; ignored by models without support.",
-    "desc": "max 档（最高思考档）的最大思考 token 预算。默认 32768。顶档最贵，配合 ultrathink 使用；模型不支持时被忽略。"
+    "desc": "max 档（最高思考档）的最大思考 token 数。默认 32768。顶档最贵，配 ultrathink 关键词使用；模型不支持该档时被忽略。"
   },
   "thinkingBudgets.medium": {
-    "name": "思考预算medium",
+    "name": "思考预算 medium 档",
     "desc_en": "Maximum thinking-token budget for the medium thinking level. Default 8192 — the everyday default balancing quality and cost.",
-    "desc": "medium 档思考的最大思考 token 预算。默认 8192。日常默认档，平衡质量与开销。"
+    "desc": "medium 档思考的最大思考 token 数。默认 8192。日常默认档，平衡质量与开销。"
   },
   "thinkingBudgets.minimal": {
-    "name": "思考预算minimal",
+    "name": "思考预算 minimal 档",
     "desc_en": "Maximum thinking-token budget for the minimal thinking level. Default 1024 — the cheapest, barely-thinks tier, for mechanical steps.",
-    "desc": "minimal 档思考的最大思考 token 预算。默认 1024。几乎不思考的最省档，适合机械步骤。"
+    "desc": "minimal 档思考的最大思考 token 数。默认 1024。几乎不思考的最省档，适合机械步骤。"
   },
   "thinkingBudgets.xhigh": {
-    "name": "思考预算xhigh",
+    "name": "思考预算 xhigh 档",
     "desc_en": "Maximum thinking-token budget for the xhigh (second-highest) level. Default 32768 — same budget as max but semantically below it; caps automatic thinking when providers.autoThinkingMaxEffort=xhigh.",
-    "desc": "xhigh（次顶）档思考的最大思考 token 预算。默认 32768。与 max 同预算但语义上低于顶档；providers.autoThinkingMaxEffort=xhigh 时自动思考以此封顶。"
+    "desc": "xhigh（次顶）档思考的最大思考 token 数。默认 32768，与 max 同预算但档位语义低于顶档；providers.autoThinkingMaxEffort=xhigh 时自动思考以这档封顶。"
   },
   "tier.advisor": {
-    "name": "Advisor服务档",
-    "desc": "advisor（顾问审查）模型的服务档。none=标准处理（默认）；inherit=跟随主代理当前按族生效的服务档（随 /fast 变动）；指定值（auto/default/flex/scale/priority/ultrafast 等）则强制应用到 advisor 所在族。",
+    "name": "Advisor 服务档",
+    "desc": "advisor（顾问审查）模型用哪档服务：none=标准处理（默认）；inherit=跟随主代理当前按模型族生效的服务档（随 /fast 变动）；指定具体值（auto/default/flex/scale/priority/ultrafast 等）则强制应用到 advisor 模型所属的族。",
     "options": [
       "inherit",
       "none",
@@ -2852,16 +2852,16 @@
     ]
   },
   "tier.anthropic": {
-    "name": "Claude服务档",
-    "desc": "Claude 请求的处理档。none=不发 service_tier（默认）；priority=启用 Anthropic fast mode（speed: fast，在支持的直连模型上实现提速，更贵）。Bedrock/Vertex 与经 OpenRouter 路由的 Claude 忽略此项。",
+    "name": "Claude 服务档",
+    "desc": "Claude 请求的处理档：none=不发 service_tier（默认）；priority=在支持的 Anthropic 直连模型上启用快速模式（speed: \"fast\"，更快但更贵）。Bedrock/Vertex 的 Claude 和经 OpenRouter 路由的 Claude 忽略此项。",
     "options": [
       "none",
       "priority"
     ]
   },
   "tier.google": {
-    "name": "Gemini服务档",
-    "desc": "Gemini（AI Studio+Vertex）请求及经 OpenRouter 路由的 Google 系模型的服务档，作为顶层 serviceTier 字段发送。none=不发（默认）；flex=低价慢速；priority=高优先。按 Google 计费档语义生效。",
+    "name": "Gemini 服务档",
+    "desc": "Gemini（Google AI Studio + Vertex）请求以及经 OpenRouter 路由的 Google 系模型的处理档，以顶层 serviceTier 字段发送：none=不发（默认）；flex=低价慢速档；priority=高优先档。按 Google 计费档语义生效。",
     "options": [
       "none",
       "flex",
@@ -2869,8 +2869,8 @@
     ]
   },
   "tier.openai": {
-    "name": "OpenAI服务档",
-    "desc": "OpenAI/OpenAI-Codex 请求及经 OpenRouter 路由的 OpenAI 系模型的服务档，作为 service_tier 发送。none=不发（默认）；auto/default=供应商默认策略；flex=低价慢速；scale=弹性；priority=高优先（更贵）；ultrafast=最快档。",
+    "name": "OpenAI 服务档",
+    "desc": "OpenAI / OpenAI-Codex 请求以及经 OpenRouter 路由的 OpenAI 系模型的处理档，以 service_tier 发送：none=不发（默认）；auto/default=供应商默认策略；flex=低价慢速；scale=弹性；priority=高优先更贵；ultrafast=最快档。",
     "options": [
       "none",
       "auto",
@@ -2883,7 +2883,7 @@
   },
   "tier.subagent": {
     "name": "子代理服务档",
-    "desc": "task/eval 派发的子代理的服务档。inherit=跟随主代理当前按族生效的服务档（随 /fast 联动，默认）；指定值（auto/default/flex/scale/priority/ultrafast 等）则应用到子代理模型所在族。控制子代理的速度/价格档位。",
+    "desc": "task/eval 派发的子代理用哪档服务：inherit=跟随主代理当前按族生效的服务档（随 /fast 联动，默认）；指定具体值则应用到子代理模型所属的族。控制子代理的速度/价格档位。",
     "options": [
       "inherit",
       "none",
@@ -2897,11 +2897,11 @@
   },
   "title.refreshOnReplan": {
     "name": "改计划刷新标题",
-    "desc": "todo 初始化重新规划（replan）后自动刷新已生成的会话标题；你手动设过的标题不被覆盖。让标题贴合最新任务方向。默认 true。"
+    "desc": "todo init 重新规划后自动刷新已生成的会话标题；你自己手动设过的标题不会被覆盖。让标题贴合最新任务方向。默认 true。"
   },
   "todo.eager": {
     "name": "清单建立倾向",
-    "desc": "首条消息后自动建立 todo 清单的积极程度。default=正常判断；preferred=更积极建清单；always=几乎总建。清单有助于跟踪多步任务，但小事也建清单会啰嗦。默认 default。",
+    "desc": "收到首条消息后自动建 todo 清单的积极程度：default=正常判断（默认）；preferred=更积极建清单；always=几乎总建。清单有助于跟踪多步任务，但小事也建会显得啰嗦。",
     "options": [
       "default",
       "preferred",
@@ -2914,23 +2914,23 @@
   },
   "todo.reminders": {
     "name": "收尾清单提醒",
-    "desc": "agent 打算停止前，若清单还有未完成项则提醒它继续/收尾，防止半途而废。默认 true。"
+    "desc": "agent 打算停止时若清单还有未完成项，提醒它继续做或收尾，防止半途而废。默认 true。"
   },
   "todo.remindersMax": {
     "name": "清单提醒上限",
-    "desc": "todo 未完成时最多提醒几次后放弃（不再纠缠）。默认 3。与 todo.reminders 配合：提醒次数到了就让它停，由你决定下一步。"
+    "desc": "清单有未完成项时最多提醒几次后放弃（不再纠缠）。默认 3。配合 todo.reminders 使用：次数到了就让它停，由你决定下一步。"
   },
   "tools.abortOnFabricatedResult": {
     "name": "幻觉结果即停",
-    "desc": "带内工具调用时，模型若在轮次中途开始「自己编造工具结果」就立即停止生成；关闭则让它生成完再丢弃编造部分。开着省 token 且尽早止损。默认 true。"
+    "desc": "带内工具调用模式下，模型若在轮次中途开始自己编造工具结果就立即停止生成；关闭则让它生成完再丢弃编造部分。开着省 token 且尽早止损。默认 true。"
   },
   "tools.approval": {
     "name": "按工具审批策略",
-    "desc": "逐工具设置审批策略的记录，形如 {\"bash\":\"prompt\"}：allow=自动放行、prompt=每次确认、deny=直接拒绝，在所有审批模式下都优先生效。给危险工具单独上锁/放行的精细手段。默认空对象=按 approvalMode。"
+    "desc": "逐工具设置审批策略的对象，形如 {\"bash\":\"prompt\"}：allow=自动放行、prompt=每次确认、deny=直接拒绝。这些覆盖在每种审批模式下都优先生效，是给危险工具单独上锁/放行的精细手段。默认空对象=全按 tools.approvalMode。"
   },
   "tools.approvalMode": {
     "name": "工具审批模式",
-    "desc": "工具调用的默认审批行为。always-ask=仅自动放行只读工具，其余每次确认；write=自动放行读与工作区写；yolo=全部自动放行（用户策略仍可拦）。yolo 配合隐藏工具活动=不看不问，风险自担。当前默认 yolo。",
+    "desc": "工具调用的默认审批行为：always-ask=只自动放行只读工具、其余每次确认；write=自动放行读和工作区写入工具；yolo=全部自动放行（你在 tools.approval 里配的规则仍可拦）。yolo 配合隐藏工具活动等于不看不问，风险自担。默认 yolo。",
     "options": [
       "always-ask",
       "write",
@@ -2938,28 +2938,28 @@
     ]
   },
   "tools.artifactHeadBytes": {
-    "name": "溢出保留头部字节",
-    "desc": "工具输出溢出到 artifact 时，除滚动尾部外在行内保留的开头字节数（中段省略）。0=不保留头部、只留尾部。保留头部便于一眼看出输出是什么命令的开场。默认 20（KiB）。"
+    "name": "溢出保留头部大小",
+    "desc": "工具输出溢出转存 artifact 时，除了尾部还在行内保留的开头大小（KB），中间省略。0=不保留头部、只留尾部。保留头部能一眼看出这是什么命令的开场。默认 20（KB）。"
   },
   "tools.artifactMaxBytes": {
     "name": "产物文件上限",
-    "desc": "溢出输出保存为 artifact 文件的大小上限。默认 16（MiB）。超限时保留开头最多 3 MiB+最近尾部，中间以截断说明衔接；0=不限。磁盘紧张或超大日志场景调整。"
+    "desc": "溢出输出存成 artifact 文件的大小上限（MB）。默认 16。超限时保留开头最多 3 MB 加最近的尾部、中间用截断说明衔接；0=不限。磁盘紧张或常跑超大日志时调整。"
   },
   "tools.artifactSpillThreshold": {
     "name": "溢出阈值",
-    "desc": "工具输出超过该大小（KiB）就把完整输出保存为 artifact、行内只留头尾摘要，模型可按 artifact://<id> 取回全文。默认 50。调小→上下文更省但多一次取回；调大→更多内容直接可见。"
+    "desc": "工具输出超过这个大小（KB）就把完整输出存成 artifact、行内只留头尾摘要，模型可按 artifact://<id> 取回全文。默认 50。调小上下文更省但要多一次取回；调大更多内容直接可见。"
   },
   "tools.artifactTailBytes": {
-    "name": "溢出保留尾部字节",
-    "desc": "输出溢出到 artifact 时行内保留的尾部字节数（与 artifactTailLines 共同约束）。默认 20（KiB）。命令结果通常关键在尾部（报错/汇总），这里决定行内能直接看到多少。"
+    "name": "溢出保留尾部大小",
+    "desc": "输出溢出到 artifact 时行内保留的尾部大小（KB），和 artifactTailLines 共同约束。命令结果的关键信息通常在尾部（报错/汇总），这里决定行内直接能看到多少。默认 20（KB）。"
   },
   "tools.artifactTailLines": {
     "name": "溢出保留尾部行数",
-    "desc": "输出溢出到 artifact 时行内保留的最大尾部行数。默认 500。调大→行内看到更多末尾输出；调小→更省上下文。"
+    "desc": "输出溢出到 artifact 时行内最多保留多少行尾部内容。默认 500。调大行内看到更多末尾输出；调小更省上下文。"
   },
   "tools.format": {
     "name": "工具调用格式",
-    "desc": "向模型暴露工具的方式。auto=供应商原生工具调用，模型标记不支持时回退 GLM 自有方言（默认）；native=强制原生；其余值强制指定方言（glm/hermes/kimi/xml/anthropic/deepseek/harmony/qwen3/gemini/gemma/minimax）。自建/逆向网关的模型不认原生工具时换方言。",
+    "desc": "怎么把工具暴露给模型：auto=供应商原生工具调用，模型标记不支持时回退到 omp 自己的 GLM 方言（默认）；native=强制原生；其余值强制用指定方言（glm/hermes/kimi/xml/anthropic/deepseek/harmony/qwen3/gemini/gemma/minimax）。自建或逆向网关的模型不认原生工具时换方言试试。",
     "options": [
       "auto",
       "native",
@@ -2978,31 +2978,31 @@
   },
   "tools.intentTracing": {
     "name": "工具意图追踪",
-    "desc": "要求 agent 在每次工具调用前先描述这步意图（「i: 正在做…」）。方便你跟读与审计工具行为，多花少量 token。默认 true。"
+    "desc": "要求 agent 在每次工具调用前先说明这步意图（\"i: 正在做…\"）。方便你跟读和审计工具行为，每次调用多花一点 token。默认 true。"
   },
   "tools.maxTimeout": {
     "name": "工具超时上限",
-    "desc": "任何工具可设置的最大超时秒数全局天花板，工具请求值会被钳制到此值之内。0=不设上限（默认）。防止模型给长任务设出离谱超时。"
+    "desc": "agent 能给任何工具设置的最大超时秒数，请求值会被钳在这个上限内。0=不设限（默认）。防止模型给长任务设出离谱超时。"
   },
   "tools.outputMaxColumns": {
     "name": "输出单行上限",
-    "desc": "流式工具输出（bash/python/js eval）与 read 的单行字节上限，超宽行以省略号截断并丢弃本行剩余字节。0=不限。默认 768。防止单行超长内容（如压缩 JS、base64）撑爆上下文。"
+    "desc": "流式工具输出（bash/python/js eval）和 read 的单行字节上限：超宽行用省略号截断，到下一个换行为止的剩余字节直接丢弃。0=不限。默认 768。防止单行超长内容（压缩 JS、base64 之类）撑爆上下文。"
   },
   "tools.speculativeExecution.enabled": {
     "name": "投机执行",
-    "desc": "启用「可丢弃的首切片」：通过直接 read 调用与嵌套 eval 预执行已验证的本地只读操作，失败即丢弃不影响主流程。网络请求、供应商补全、真实文件写入不在基线内。默认 false。"
+    "desc": "启用「可安全丢弃的首切片」：正式派发前通过直接 read 调用和嵌套 eval 先跑验证过的本地只读操作，结果不对就丢弃、不影响主流程。网络请求、供应商生成和真实文件写入不在此范围。默认 false。"
   },
   "tools.speculativeExecution.maxInFlight": {
     "name": "投机并发上限",
-    "desc": "正常派发前允许同时在飞的已验证本地只读投机执行数量。默认 2。仅在 speculativeExecution.enabled 开启时有意义。"
+    "desc": "正常派发之前允许同时在飞的验证过的本地只读投机执行数量。默认 2。仅在 tools.speculativeExecution.enabled 开启时有意义。"
   },
   "tools.xdev": {
-    "name": "xd://设备挂载",
-    "desc": "把低频工具挂载到 xd:// 设备 URL 下（经 read/write 驱动），而不是每次请求都带全部工具 schema，省系统提示 token；显式工具清单只给 read 不给 write 的会话走只读设备传输。关闭则所有已启用工具平铺到顶层。默认 true。"
+    "name": "xd:// 设备挂载",
+    "desc": "把低频工具挂载到 xd:// 设备 URL 下（用 read/write 驱动），而不是每次请求都把所有工具 schema 全发出去，省系统提示 token。显式工具清单只给 read 不给 write 的会话走只读设备通道（文件系统写入仍被拒）。关闭则所有已启用工具平铺到顶层。默认 true。"
   },
   "tools.xdevDocs": {
     "name": "设备文档注入",
-    "desc": "哪些已挂载设备的文档与 schema 内联进系统提示。inline=全部内联；builtins=核心工具内联、MCP/扩展工具按需（默认）；catalog=仅目录清单、全部按需。省 token 与工具可发现性的权衡。",
+    "desc": "哪些已挂载设备的文档和 schema 内联进系统提示：inline=全部内联（最占 token 但工具随时可见）；builtins=核心工具内联、MCP 和扩展工具按需读取；catalog=只放一行目录清单、全部按需（默认，最省）。是省 token 和工具可发现性的权衡。",
     "options": [
       "inline",
       "builtins",
@@ -3011,19 +3011,19 @@
   },
   "tools.xdevInlineDevices": {
     "name": "指定内联设备",
-    "desc": "当 xdevDocs 为 builtins 时，名称匹配这些 glob 的动态设备强制内联其文档（如 mcp__context_mode_*）；catalog 模式忽略此项。常驻使用的 MCP 工具想免按需读取时配置。默认空数组。"
+    "desc": "当 tools.xdevDocs 选 builtins 时，名字匹配这些 glob 模式的动态设备强制内联其文档（例如 mcp__context_mode_*）。catalog 模式忽略此项。常驻使用的 MCP 工具想免按需读取就配这里。默认空数组。"
   },
   "topK": {
-    "name": "Top-K采样",
+    "name": "Top-K 采样",
     "desc": "只在概率最高的 K 个 token 里采样，K 越小输出越保守。-1=用供应商默认（默认值）。仅对支持该参数的后端生效，编码场景一般不动。"
   },
   "topP": {
-    "name": "Top-P核采样",
-    "desc": "核采样截止概率（0–1）：只在累计概率前 P 的 token 里采样，越小越确定。-1=用供应商默认（默认值）。与 temperature/topK 同属采样精调项，一般不动。"
+    "name": "Top-P 核采样",
+    "desc": "核采样截止概率（0–1）：只在累计概率前 P 的 token 里采样，越小越确定。-1=用供应商默认（默认值）。和 temperature、topK 同属采样精调项，一般不动。"
   },
   "treeFilterMode": {
     "name": "会话树过滤",
-    "desc": "打开会话树（/tree）时的默认过滤模式。default=常规；no-tools=隐藏工具调用；user-only=只看用户消息；labeled-only=只看带标签节点；all=全部。回看长会话的降噪入口。默认 default。",
+    "desc": "打开会话树（/tree）时的默认过滤模式：default=常规；no-tools=隐藏工具调用；user-only=只看用户消息；labeled-only=只看带标签节点；all=全部。回看长会话时的降噪入口。默认 default。",
     "options": [
       "default",
       "no-tools",
@@ -3033,8 +3033,8 @@
     ]
   },
   "tts.localVoice": {
-    "name": "本地TTS声线",
-    "desc": "本地 TTS 后端（Kokoro）使用的声线：af_*=美/英女声、am_*=美男声、bf_*/bm_*=英式男女声。供 tts 工具/语音合成使用，与 speech.voice 独立。默认 af_heart。",
+    "name": "本地 TTS 声线",
+    "desc": "本地 TTS 后端（Kokoro）用的声线：af_*=美式女声、am_*=美式男声、bf_*/bm_*=英式女声/男声。供 tts 工具/语音合成用，和 speech.voice 相互独立。默认 af_heart。",
     "options": [
       "af_heart",
       "af_bella",
@@ -3051,28 +3051,28 @@
     ]
   },
   "ttsr.builtinRules": {
-    "name": "TTSR内置规则",
-    "desc": "加载 agent 自带的默认 Time-Traveling Stream Rules（时间旅行流规则）；可用 ttsr.disabledRules 逐条关掉。内置规则负责常见的「及时打断错误输出」。默认 true。"
+    "name": "TTSR 内置规则",
+    "desc": "加载 agent 自带的默认流规则（Time-Traveling Stream Rules，流式输出命中规则就中途打断）。可以用 ttsr.disabledRules 逐条关掉某些内置规则。默认 true。"
   },
   "ttsr.contextMode": {
     "name": "触发后上下文处理",
-    "desc": "TTSR 规则触发（打断流）时对已生成的部分输出如何处理。discard=丢弃半成品（默认，重来更干净）；keep=保留已生成内容再继续。视「打断原因是否污染前文」选择。",
+    "desc": "TTSR 规则触发打断流时，已经生成的部分输出怎么办：discard=丢弃半成品重新来（默认，更干净）；keep=保留已生成内容再继续。看「打断原因会不会污染前文」来选。",
     "options": [
       "discard",
       "keep"
     ]
   },
   "ttsr.disabledRules": {
-    "name": "TTSR规则黑名单",
-    "desc": "完全忽略的规则名单（对内置默认规则与你自己的规则都生效）。某条规则误伤频繁时把它加进来。默认空数组。"
+    "name": "TTSR 规则黑名单",
+    "desc": "完全忽略的规则名列表，对内置默认规则和你自己的规则都生效。某条规则误伤频繁就把它加进来。默认空数组。"
   },
   "ttsr.enabled": {
     "name": "流规则打断",
-    "desc": "Time-Traveling Stream Rules：输出流命中规则模式时中途打断 agent（可回到指定位置重写），防患于未然。强但激进，误报会打断正常输出。默认 true。"
+    "desc": "Time-Traveling Stream Rules：输出流命中规则模式时中途打断 agent（可回到指定位置重写），防患于未然。强但激进，误报会打断正常输出。默认 true；误报多可配合 ttsr.interruptMode 降级。"
   },
   "ttsr.interruptMode": {
     "name": "打断范围",
-    "desc": "哪些流允许中途打断、哪些等完成后再注入警告。always=正文与工具流都打断（默认）；prose-only=只在回复/思考命中时打断；tool-only=只在工具调用参数命中时打断；never=从不高速打断，只完成后注入警告。误报多时降级。",
+    "desc": "哪些流允许中途打断、哪些等完成后再注入警告：always=正文和工具流都打断（默认）；prose-only=只在回复/思考命中时打断；tool-only=只在工具调用参数命中时打断；never=从不流中打断、只在完成后注入警告。误报多时降级。",
     "options": [
       "never",
       "prose-only",
@@ -3082,7 +3082,7 @@
   },
   "ttsr.judge": {
     "name": "问题规则判定",
-    "desc": "对带 question 的规则，把已完成回复/推理/工具调用交给 judge 模型角色判断：答「是」才注入警告。auto=judge 角色解析到原生 TypeSafe jev 模型才判定；on=无论解析到什么都判定；off=不判定、question 规则停用。默认 auto。",
+    "desc": "对带 question 的规则，把已完成的回复/推理/工具调用交给 judge 模型角色判断，答「是」才把该规则作为警告注入（judge 是系统里专做判定的小模型角色）。auto=judge 角色解析到原生 TypeSafe jev 模型才判定（默认）；on=无论解析到什么都判定；off=不判定、question 规则停用。",
     "options": [
       "auto",
       "on",
@@ -3091,23 +3091,23 @@
   },
   "ttsr.repeatGap": {
     "name": "规则重复间隔",
-    "desc": "repeatMode 为 after-gap 时，同一条规则触发后需间隔多少条消息才能再次触发，防止连环打断。默认 10。"
+    "desc": "ttsr.repeatMode 为 after-gap 时，同一条规则触发后要隔多少条消息才能再次触发，防止连环打断。默认 10。"
   },
   "ttsr.repeatMode": {
     "name": "规则重复模式",
-    "desc": "规则可否重复触发。once=每会话只触发一次（默认）；after-gap=隔 repeatGap 条消息后可再次触发。反复出现的坏习惯（如每次都编 URL）用 after-gap。",
+    "desc": "规则能不能重复触发：once=每会话只触发一次（默认）；after-gap=隔 ttsr.repeatGap 条消息后可再次触发。反复出现的坏习惯（比如每次都编 URL）用 after-gap。",
     "options": [
       "once",
       "after-gap"
     ]
   },
   "tui.codexResetFireworks": {
-    "name": "Codex重置烟花",
-    "desc": "Codex 周用量意外重置、以及新攒下的保留重置（saved resets）入账时，放一场屏幕上三分之一高度的烟花庆祝，按 ⎋ 消散。纯娱乐开关。默认 false。"
+    "name": "Codex 重置烟花",
+    "desc": "Codex 周用量意外重置、或新攒下的保留重置额度入账时，在屏幕上三分之一区域放一场烟花庆祝，按 ⎋ 消散。纯娱乐开关。默认 false。"
   },
   "tui.hyperlinks": {
-    "name": "OSC8超链接",
-    "desc": "把路径与 URL 包成 OSC 8 终端原生超链接，可点击直接打开。auto=自动探测终端支持（默认）；off=从不；always=无条件使用（终端不支持会显示转义垃圾）。",
+    "name": "OSC8 超链接",
+    "desc": "把路径和 URL 包成 OSC 8 终端原生超链接，点击可直接打开：auto=自动探测终端支持（默认）；off=从不；always=无条件启用（终端不支持会显示转义乱码）。",
     "options": [
       "off",
       "auto",
@@ -3116,38 +3116,38 @@
   },
   "tui.imeSafeCursor": {
     "name": "输入法安全光标",
-    "desc": "把提示框底边移到独立一行，macOS 输入法预编辑（候选条）出现时不再挤压/顶跑提示框。macOS 中文用户输入卡位时开。默认 false。"
+    "desc": "把提示框底边挪到单独一行，macOS 输入法预编辑（候选条）出现时不会再挤压/顶跑提示框。macOS 中文输入用户遇到光标错位时打开。默认 false。"
   },
   "tui.maxInlineImageColumns": {
     "name": "内联图片宽度上限",
     "desc_en": "Maximum width in terminal columns of inline images in the terminal; 0 = unlimited (bounded by terminal width only). Default 100; shrink it when large images take over the screen.",
-    "desc": "终端内联图片的最大宽度（终端列数）。0=不限宽（只受终端宽度约束）。默认 100。大图占屏可调小。"
+    "desc": "终端内联图片的最大宽度（按终端列数）。0=不限宽（只受终端宽度约束）。默认 100。大图太占屏就调小。"
   },
   "tui.maxInlineImageRows": {
     "name": "内联图片高度上限",
     "desc_en": "Maximum height in terminal rows of inline images; 0 = viewport-limited (60% of the terminal height). Default 20.",
-    "desc": "终端内联图片的最大高度（终端行数）。0=只用视口限制（终端高度的 60%）。默认 20。"
+    "desc": "终端内联图片的最大高度（按终端行数）。0=只用视口限制（终端高度的 60%）。默认 20。"
   },
   "tui.maxInlineImages": {
     "name": "内联图片数量上限",
     "desc_en": "Cap on inline images kept as active terminal graphics; beyond the cap, older images degrade to text placeholders on the next full redraw. 0 = keep all without eviction. Default 8.",
-    "desc": "保留为「活动终端图形」的内联图片数量上限，超限后旧图经整屏重绘退化为文字占位符。0=全部保留不淘汰。默认 8。"
+    "desc": "最多同时保留多少张「活」的内联终端图片；超限后旧图经整屏重绘退化为文字占位符。0=全部保留不淘汰。默认 8。"
   },
   "tui.mouse": {
     "name": "鼠标捕获",
-    "desc": "主会话捕获鼠标：点击子代理卡片/HUD 行即聚焦并高亮。代价是原生文字选择变 ⇧+拖拽、滚轮变 ⇧+滚轮。不习惯改手势就关。默认 false。"
+    "desc": "主会话捕获鼠标：点击子代理卡片/HUD 行就能聚焦、悬停高亮目标。代价是原生文字选择变成 ⇧+拖拽、滚轮变成 ⇧+滚轮。不习惯改手势就关。默认 false。"
   },
   "tui.reactions": {
     "name": "回应表情徽章",
-    "desc": "邀请 agent 对你的消息在它的气泡上贴一个 emoji 徽章回应（收到/处理中之类的轻反馈）。纯趣味，嫌吵可关。默认 true。"
+    "desc": "允许 agent 在你的消息上用 emoji 徽章做轻量回应（收到/处理中之类）。纯趣味功能，嫌吵可关。默认 true。"
   },
   "tui.renderMermaid": {
-    "name": "Mermaid渲染",
-    "desc": "把回复里的 mermaid 代码块渲染成 ASCII 示意图（终端无法显示真图时的替代），流程/架构一眼可读；想看原始代码可关。默认 true。"
+    "name": "Mermaid 渲染",
+    "desc": "把回复里的 mermaid 代码块渲染成 ASCII 示意图（终端显示不了真图时的替代），流程/架构一眼可读；想看原始代码可关。默认 true。"
   },
   "tui.resizeScrollback": {
     "name": "窗口重排回滚",
-    "desc": "终端尺寸稳定后如何刷新已进入终端回滚区的历史行。append=重排后追加新版本（回滚区会变长）；rebuild=重建保留的行（默认，回滚区干净）；preserve=尽量保留原样。各有取舍，重排后回滚区乱就换 rebuild。",
+    "desc": "终端尺寸调整稳定后，怎么处理已进入回滚区的历史行：append=重排后追加新版本（回滚区变长）；rebuild=重建保留的行（默认，回滚区干净）；preserve=尽量保留原样。各有取舍，重排后回滚区乱就换 rebuild。",
     "options": [
       "append",
       "rebuild",
@@ -3155,16 +3155,16 @@
     ]
   },
   "tui.textSizing": {
-    "name": "Kitty大标题",
-    "desc": "用 Kitty 的 OSC 66 文本缩放协议以 2 倍字号渲染 Markdown H1 大标题。仅 Kitty 终端生效，其他终端忽略。默认 false。"
+    "name": "Kitty 大标题",
+    "desc": "用 Kitty 的 OSC 66 文本缩放协议把 Markdown H1 大标题渲染成 2 倍字号。只在 Kitty 终端生效，其他终端忽略。默认 false。"
   },
   "tui.tight": {
     "name": "去两侧留白",
-    "desc": "去掉终端输出左右各 1 字符的水平内边距，同样宽度能多显示 2 列内容，视觉更紧凑。默认 false。"
+    "desc": "去掉终端输出左右各 1 个字符的水平内边距，同样宽度能多显示 2 列内容，视觉更紧凑。默认 false。"
   },
   "tui.titleSpinner": {
     "name": "标题栏转圈样式",
-    "desc": "agent 工作时终端标题里的旋转指示字符集。braille=盲文点扫描（默认）；pulse=填充月相；dots=单点循环；line=ASCII 兼容线条。",
+    "desc": "agent 工作时终端标题里的旋转指示字符集：braille=盲文点扫描（默认）；pulse=填充月相；dots=单点循环；line=ASCII 兼容线条。纯显示偏好。",
     "options": [
       "braille",
       "pulse",
@@ -3174,15 +3174,15 @@
   },
   "tui.titleState": {
     "name": "标题栏状态",
-    "desc": "在终端标题分隔符中显示 agent 运行状态：工作中为动画转圈（WSL 下为静态冒号），轮到你时 >，等你输入/确认时 !。多标签页时不用切回去就知道该谁动作。默认 true。"
+    "desc": "在终端标题分隔符里显示 agent 运行状态：工作中是动画转圈（WSL 下是静态冒号），轮到你时是 >，agent 等你操作时是 !。多标签页时不用切回去就知道该谁动作。默认 true。"
   },
   "tui.vimMode": {
-    "name": "Vim编辑模式",
-    "desc": "提示词输入启用模态编辑：⎋ 进 Normal，支持 hjkl/0/$/^/w/b/e/gg/G/计数/x/D/C/dd/yy/p/u，操作符可接动作或文本对象（diw、ca(、dap），v/V 进可视选择。Vim 手感好者的刚需，其他人别开。默认 false。"
+    "name": "Vim 编辑模式",
+    "desc": "提示词输入启用 Vim 模态编辑：⎋ 进 Normal 模式，支持 hjkl/0/$/^/w/b/e/gg/G/计数/x/D/C/dd/yy/p/u，操作符可接动作或文本对象（diw、ca(、dap），v/V 进可视选择。Vim 用户的刚需，不用的别开。默认 false。"
   },
   "tui.vimModeDisplay": {
-    "name": "Vim模式显示",
-    "desc": "状态栏如何显示当前 Vim 模式。text=文字（默认）；icon=图标；none=不显示。仅在 tui.vimMode 开启时有意义。",
+    "name": "Vim 模式显示",
+    "desc": "状态栏怎么显示当前 Vim 模式：text=文字（默认）；icon=图标；none=不显示。仅在 tui.vimMode 开启时有意义。",
     "options": [
       "text",
       "icon",
@@ -3191,34 +3191,34 @@
   },
   "update.channel": {
     "name": "更新通道",
-    "desc": "omp update 与启动更新检查使用的通道。stable=稳定版（默认）；canary=金丝雀通道，新功能/修复先到，但稳定性略低。追新或需紧急修复时切 canary。",
+    "desc": "omp update 和启动更新检查用哪个通道：stable=稳定版（默认）；canary=金丝雀通道，新功能/修复先到但稳定性略低。追新或需要某个紧急修复时切 canary。",
     "options": [
       "stable",
       "canary"
     ]
   },
   "vault.enabled": {
-    "name": "Obsidian保险库",
-    "desc": "启用 vault:// 内部 URL，经 Obsidian CLI 读写你的 Obsidian 仓库内容。关闭时 vault:// 解析被拒且系统提示里不出现该条目（省一点上下文）。用 omp 管理 Obsidian 笔记时开。默认 false。"
+    "name": "Obsidian 保险库",
+    "desc": "启用 vault:// 内部 URL，经 Obsidian CLI 读写你的 Obsidian 仓库内容。关闭时 vault:// 解析被拒绝、系统提示里也不出现该条目（省一点上下文）。用 omp 管理 Obsidian 笔记时打开。默认 false。"
   },
   "web_search.enabled": {
     "name": "网页搜索工具",
-    "desc": "启用 web_search 工具（实时网页结果，按 providers.fetch/搜索后端顺序走）。完全离线使用或不需要联网调研时可关，省一个工具 schema。默认 true。"
+    "desc": "启用 web_search 工具拿实时网页结果。完全离线用、或不想让 agent 联网调研时可关，顺带省一个工具 schema。默认 true。"
   },
   "workspace.additionalDirectories": {
     "name": "额外工作区目录",
-    "desc": "每个会话额外挂载的工作区根目录数组（多根工作区），相对路径按 cwd 解析，建议写绝对路径；会告知 agent 这些根存在并可读/grep/glob。可用 /add-dir、/remove-dir 在会话里即时管理。跨目录工作时用。默认空数组。"
+    "desc": "每个会话额外挂载的工作区根目录列表（多根工作区），相对路径按当前工作目录解析、建议写绝对路径；agent 会被告知这些根存在并可对它们 read/grep/glob。也可以用 /add-dir、/remove-dir 在会话里即时管理。跨目录工作时用。默认空数组。"
   },
   "worktree.base": {
     "name": "工作树基目录",
-    "desc": "agent 管理的 worktree 的基目录：任务隔离副本、github PR 检出、omp worktree 清理都放在这。未设用 ~/.omp/wt。必须是绝对路径或 ~ 开头路径，相对路径被忽略；OMP_WORKTREE_DIR 环境变量可覆盖。默认空。"
+    "desc": "agent 管理的 worktree 放哪：任务隔离副本、github PR 检出、omp worktree 清理都在这个基目录下。未设置用 ~/.omp/wt。必须是绝对路径或以 ~ 开头的路径，其他相对路径会被忽略；OMP_WORKTREE_DIR 环境变量可覆盖。默认留空。"
   },
   "worktree.cleanSource": {
     "name": "检出后清理源",
-    "desc": "用 /wt 创建工作树并把改动带过去后，把原检出里的已跟踪改动重置、未跟踪文件删除，让原检出回到干净状态。一键「搬家」；怕误删原检出东西就别开。默认 false。"
+    "desc": "用 /wt 创建工作树并把改动带过去后，把原检出里已跟踪的改动重置、未跟踪文件删除，让原检出回到干净状态——相当于一键「搬家」。怕误删原检出里的东西就别开。默认 false。"
   },
   "worktree.clone": {
     "name": "工作树写时克隆",
-    "desc": "github pr_checkout 与 bash 里的 git worktree add 新建工作树时，优先以当前检出的写时复制（copy-on-write）克隆起步，让 node_modules、target 等被忽略的构建产物直接带过去，省去重装；文件系统不支持克隆则回退普通检出。默认 true。"
+    "desc": "github pr_checkout 或 bash 里的 git worktree add 新建工作树时，先对当前检出做写时复制（copy-on-write）克隆，让 node_modules、target 等被忽略的构建产物直接带过去、省去重装；文件系统不支持克隆则回退普通检出。默认 true。"
   }
 }

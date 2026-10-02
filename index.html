@@ -24,7 +24,7 @@
           border: 1px solid #2a2e37; border-radius: 8px; margin-bottom: 8px; background: #1c1f26; }
   .role .name { width: 110px; font-weight: 600; }
   .role .name small { display: block; font-weight: 400; color: #8b93a1; font-size: 11px; }
-  .role .value { flex: 1; font-family: Consolas, monospace; font-size: 13px; color: #9fd0ff; }
+  .role .value { flex: none; font-family: Consolas, monospace; font-size: 13px; color: #9fd0ff; }
   select { background: #232732; color: #d7dae0; border: 1px solid #3a4050;
            border-radius: 6px; padding: 6px 8px; font-size: 13px; display: none;
            max-width: 360px; }
@@ -127,6 +127,11 @@
   .u-note { font-size: 11px; color: #8b93a1; padding: 4px 0 2px; border-top: 1px solid #242833;
             line-height: 1.5; }
   .u-extra { font-size: 11px; color: #8b93a1; margin-bottom: 8px; line-height: 1.6; }
+  .role .rdesc { flex: 1; min-width: 0; font-size: 11px; color: #8b93a1;
+                 line-height: 1.55; white-space: normal; }
+  .roles-intro { font-size: 12px; color: #8b93a1; line-height: 1.7; margin-bottom: 12px;
+                 padding: 10px 14px; border: 1px solid #2a2e37; border-radius: 8px;
+                 background: #1c1f26; }
 </style>
 </head>
 <body>
@@ -195,6 +200,25 @@ const T = {
     roleComment: {"default":"主会话模型","smol":"轻量快速任务","slow":"深度推理",
       "plan":"规划模式","vision":"图像理解","task":"子代理","commit":"提交信息生成",
       "tiny":"极小分类/标题","web":"网络搜索","advisor":"顾问评审"},
+    rolesIntro: '「模型角色」是 omp 的模型分工表：不同功能各自绑定一个角色，每个角色再指向具体模型（写法是 供应商/模型名，可带 :high 等思考档位）。角色的值里可以写 @角色名 来引用另一个角色（如 plan: "@slow"），写 * 等价于 @default；也可写逗号分隔的多个候选，取第一个能用的。没有内置说明的名字（如 e）是自定义角色：不影响任何内置功能，只有当你的配置、提示词或扩展用 @名字 引用它时才生效；把名字加进 cycleOrder 可以让 Ctrl+P 轮换到它。',
+    roleDesc: {
+      "default": '主对话模型：你在会话里敲的每轮对话、主 agent 的所有工具调用都走它，也是大多数角色找不到配置时的最终兜底。务必配一个可靠的主力模型。不配时用启动时选中的模型。',
+      "smol": '轻量快速任务模型：自动生成会话标题、给子代理起名、内置机械任务代理 sonic、编辑失败后的自动修复、生成技能描述、/prewalk 一次性交接（先用主模型规划、真正动手写文件时切到它）、/cleanse 清理、--plan-yolo-into 等都用它。适合快而便宜的模型（flash/mini 级）；配太强浪费钱，配太弱会拉低标题和子代理质量。不配时：若 default 已配置则直接用 default，否则按内置快模型优先级表挑。',
+      "slow": '深度思考模型：Advisor（顾问评审）没单独配模型时会用到这里；也是 Ctrl+P 模型轮换的一档（默认轮换顺序 smol → default → slow）；启动时可用 --slow 或环境变量 PI_SLOW_MODEL 临时覆盖。建议配旗舰推理模型——它决定顾问评审的质量。不配时：若 default 已配置则直接用 default，否则按内置旗舰模型优先级表挑。',
+      "plan": '规划模式的专用模型：输入 /plan 或按 Alt+Shift+P 进入规划模式时切到它，退出时切回（还有「每个新会话自动进入规划模式」的设置项）。适合架构规划能力强的模型。不配时规划模式直接沿用当前会话模型。也可用 --plan / PI_PLAN_MODEL 临时覆盖。',
+      "vision": '看图模型：当你拖进图片或对图片提问（如 read screenshot.png 带问题）时，omp 依次尝试 vision → default → 当前会话模型 → 任意能看图的可用模型，取第一个支持图片输入的。要配能看图的模型；配了不支持图片输入的会被跳过，全部都不行时会报错提示你给 vision 配一个。不配时按上述链自动找能看图的模型。',
+      "task": 'task 子代理工具的默认模型：主 agent 用 task 工具把工作分给子代理（如内置的通用代理 task），没写死模型的子代理就走它。子代理要独立完成真实工作（读写文件、跑命令），适合稳定的中强模型；配太弱委派的活容易失败。不配时子代理回落到当前会话模型。',
+      "commit": '生成 git 提交信息的模型：执行 omp commit（/commit）起草 commit message 时用它。小活，快而便宜的模型最合适。不配时自动回退到 smol，再没有就走 default。',
+      "tiny": '极轻量后台模型：自动生成会话标题、语音播报前的文本润色等打杂任务用它，选最小最快的模型即可（本地小模型也行）。不配时回退到 smol（smol 再不配则沿用 default / 内置快模型表）。',
+      "web": '联网搜索后端：web_search 等搜索工具用哪个服务/模型由它定。可以绑专用搜索服务（如 web/exa、web/duckduckgo、web/hosted），也可以绑自带联网搜索能力的聊天模型（如 google-gemini-cli/gemini-2.5-flash，会真的用它做搜索）。绑了不支持联网的普通聊天模型会报错并自动尝试内置搜索服务。不配时按内置搜索服务优先级表走。',
+      "advisor": '顾问评审模型：开启 advisor.enabled 或在会话里 /advisor on 后，一个后台助手持续审查主 agent 的每轮输出并插话提建议；WATCHDOG.yml 里没写 model 的顾问条目也用它。要配强模型——它得能发现主模型的错。不配时：先用 slow 的配置；slow 也没配则按内置旗舰模型表挑；不会直接用当前会话模型。',
+      "memory": '记忆系统模型：记忆后端（如 Mnemopi）写入/召回记忆时用它，小模型够用。不配时回退到 tiny，tiny 再不配则继续沿 smol 链。',
+      "image": '图片生成模型：generate_image 工具画图时用它，必须选能生成图片的模型（如 gpt-image、FLUX 这类生图模型），和 vision（看图）是两回事。不配时按内置生图模型表挑。',
+      "speech": '语音合成（TTS）模型：tts 工具把文字转语音时用它，选语音合成类模型（如本地 local/kokoro、xai/grok-tts）。',
+      "dictation": '语音听写（STT）模型：语音输入转文字时用它（如本地 local/parakeet）。',
+      "judge": '评判模型：评测/判定类调用用它，优先选专用评判模型（typesafe、openrouter-decisions 类），也可用普通聊天模型。不配时按 tiny → smol → default 顺序兜底。',
+    },
+    roleDescFallback: '自定义角色：omp 的内置功能不会主动用它，只有当你的配置、提示词或扩展里用 @%s 引用时才生效（比如在自定义子代理的头部写 model: "@%s"，或把它加进 cycleOrder 让 Ctrl+P 轮换到）。任何自定义角色名都可以绑模型。',
     switchBtn: '切换', saveBtn: '保存', cancelBtn: '取消',
     currentOpt: v => `(当前) ${v}`,
     currentSuffix: v => `${v}（当前）`,
@@ -244,6 +268,25 @@ const T = {
     roleComment: {"default":"Main session model","smol":"Fast lightweight tasks","slow":"Deep reasoning",
       "plan":"Plan mode","vision":"Image understanding","task":"Subagent","commit":"Commit message",
       "tiny":"Tiny classification/titles","web":"Web search","advisor":"Advisor review"},
+    rolesIntro: 'Model roles are omp\'s model assignment table: each feature binds to a role, and each role points at a concrete model (written provider/model, optionally with a :high thinking-level suffix). A role value may reference another role via @name (e.g. plan: "@slow"), * means @default, and comma-separated entries pick the first one that works. Names without a built-in description (like e) are custom roles: no built-in feature uses them — they only take effect when your config, prompts, or extensions reference @name; adding the name to cycleOrder lets Ctrl+P cycle to it.',
+    roleDesc: {
+      "default": 'The main conversation model: every turn you type and every tool call of the primary agent goes through it, and it is the final fallback when most other roles have no configuration. Always give it a reliable flagship model. Unset: the model picked at startup is used.',
+      "smol": 'Fast lightweight-task model: auto session titles, naming subagents, the bundled low-effort agent sonic, auto-repair after failed edits, skill-description generation, /prewalk one-shot handoff (the main model plans, smol does the edits), /cleanse, --plan-yolo-into, and more all use it. Best with a fast, cheap model (flash/mini class); too strong wastes money, too weak degrades titles and subagents. Unset: inherits default if configured, otherwise the built-in fast-model priority list picks one.',
+      "slow": 'Deep-reasoning model: the advisor falls back here when it has no own model; also a stop in the Ctrl+P model cycle (default order smol → default → slow); can be overridden per launch via --slow or the PI_SLOW_MODEL env var. Give it a flagship reasoning model — it sets the quality of advisor reviews. Unset: inherits default if configured, otherwise the built-in flagship priority list picks one.',
+      "plan": 'The model for plan mode: typing /plan or pressing Alt+Shift+P switches to this role while planning, and back on exit (there is also a setting to auto-enter plan mode in every new session). Suit a model strong at architecture and planning. Unset: plan mode simply keeps the current session model. Can be overridden via --plan / PI_PLAN_MODEL.',
+      "vision": 'Image-understanding model: when you attach an image or ask about one, omp tries vision → default → the active model → any available image-capable model, taking the first that supports image input. Give it a model that can actually see images; a text-only pick is skipped, and if no candidate can read images you get an error telling you to configure vision. Unset: the chain above finds any image-capable model automatically.',
+      "task": 'Default model for task-tool subagents: when the primary agent delegates work via the task tool (e.g. the bundled general-purpose task agent), subagents without a hardcoded model use this. Subagents do real work on their own (editing files, running commands), so pick a dependable mid/strong model; too weak and delegated tasks fail. Unset: subagents fall back to the current session model.',
+      "commit": 'Commit-message model: omp commit (/commit) drafts the commit message with it. A small job — a fast, cheap model is ideal. Unset: falls back to smol, then to default.',
+      "tiny": 'Ultra-light background model: auto session titles, text polishing before speech output, and similar chores. Pick the smallest, fastest model you have (a local one is fine). Unset: falls back to smol (and if smol is unset too, keeps going through default / the built-in fast-model list).',
+      "web": 'Web-search backend: decides which service or model the web_search tools use. You can bind a dedicated search service (web/exa, web/duckduckgo, web/hosted, …) or a chat model with built-in web grounding (e.g. google-gemini-cli/gemini-2.5-flash — it will actually be used for searches). Binding an ordinary chat model without web support reports an error and then tries the built-in search services. Unset: the built-in search-service priority list applies.',
+      "advisor": 'Advisor review model: with advisor.enabled or /advisor on, a background assistant reviews every primary-agent turn and interjects advice; WATCHDOG.yml entries without their own model use this too. Give it a strong model — it must catch the primary model\'s mistakes. Unset: uses the configured slow role; if slow is also unset, the built-in flagship list — it never simply inherits the active session model.',
+      "memory": 'Memory-system model: memory backends (e.g. Mnemopi) use it when writing and recalling memories. A small model suffices. Unset: falls back to tiny, then continues down smol\'s chain.',
+      "image": 'Image-generation model for the generate_image tool. Must be a model that generates images (e.g. gpt-image, FLUX) — not to be confused with vision, which reads images. Unset: the built-in image-model list applies.',
+      "speech": 'Text-to-speech model: the tts tool uses it to turn text into audio. Pick a speech-synthesis model (local/kokoro, xai/grok-tts, …).',
+      "dictation": 'Speech-to-text model: used for voice input transcription (e.g. local/parakeet).',
+      "judge": 'Judgment model for eval/judgment calls. Prefer a dedicated judgment model (typesafe, openrouter-decisions); an ordinary chat model also works. Unset: falls back through tiny → smol → default.',
+    },
+    roleDescFallback: 'Custom role: no built-in omp feature uses it — it only takes effect when your config, prompts, or extensions reference @%s (e.g. writing model: "@%s" in a custom subagent\'s header), or when added to cycleOrder so Ctrl+P cycles to it. Any custom role name can hold a model binding.',
     switchBtn: 'Switch', saveBtn: 'Save', cancelBtn: 'Cancel',
     currentOpt: v => `(current) ${v}`,
     currentSuffix: v => `${v} (current)`,
@@ -366,6 +409,10 @@ async function load() {
   document.getElementById('cfg').textContent = r.config + ' · ' + t().modelsAvail(r.models.length);
   const box = document.getElementById('view-roles');
   box.innerHTML = '';
+  const intro = document.createElement('div');
+  intro.className = 'roles-intro';
+  intro.textContent = t().rolesIntro;
+  box.appendChild(intro);
   for (const [role, value] of Object.entries(r.roles)) {
     box.appendChild(roleRow(role, value));
   }
@@ -413,8 +460,13 @@ function roleRow(role, value) {
                          : '__current__';
   fillModels(gsel.value);
   if (inCatalog) msel.value = value;
-  div.innerHTML = `<div class="name">${role}<small>${t().roleComment[role]||''}</small></div>
+  div.innerHTML = `<div class="name"><span class="rname"></span><small></small></div>
+                   <div class="rdesc"></div>
                    <div class="value"></div>`;
+  div.querySelector('.rname').textContent = role;
+  div.querySelector('.name small').textContent = t().roleComment[role] || '';
+  const desc = t().roleDesc[role] || t().roleDescFallback.replace(/%s/g, role);
+  div.querySelector('.rdesc').textContent = desc;
   div.querySelector('.value').textContent = value;
   const edit = document.createElement('button');
   edit.textContent = t().switchBtn;
