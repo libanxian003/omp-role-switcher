@@ -230,7 +230,7 @@ def list_settings():
             "editable": typ in EDITABLE_TYPES,
         })
     items.sort(key=lambda x: (x["key"].split('.')[0], x["key"]))
-    return {"items": items, "groups": groups}
+    return {"items": items, "groups": groups, "groupmap": zh.get("__groupmap", {})}
 
 
 class Handler(BaseHTTPRequestHandler):

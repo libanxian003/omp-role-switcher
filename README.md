@@ -1,12 +1,13 @@
 # omp 设置中心 / omp Settings Web UI
 
-A tiny local web UI for [oh-my-pi (omp)](https://omp.sh): switch model roles and edit all settings in Chinese, by clicking.
+A tiny local web UI for [oh-my-pi (omp)](https://omp.sh): switch model roles and edit all settings in Chinese, by clicking. The settings page organizes 500+ keys into ~35 sidebar categories, each entry with a curated Chinese name & description.
 
-一个本地 Web 小程序：浏览器里点击切换 omp 的 `modelRoles`、修改全部设置（中文界面），替代 TUI 内 `/model` 与手编 `config.yml`。改动写入后 omp 即时生效，无需重启会话。
+一个本地 Web 小程序：浏览器里点击切换 omp 的 `modelRoles`、修改全部设置（中文界面），替代 TUI 内 `/model` 与手编 `config.yml`。改动写入后 omp 即时生效，无需重启会话。设置页把 500+ 项按 ~35 个大类做侧栏导航，逐项附中文名与中文说明。
 
 | 模型角色 / Roles | 全部设置 / Settings |
 |---|---|
-| ![roles](docs/screenshot-roles.png) | ![settings](docs/screenshot-settings.png) |
+| ![roles](docs/screenshot-roles.png) | ![settings](docs/screenshot-settings-sidebar.png) |
+| ![roles editing](docs/screenshot-roles-editing.png) | ![settings search](docs/screenshot-settings-search.png) |
 
 ## Features / 功能
 
@@ -19,6 +20,7 @@ A tiny local web UI for [oh-my-pi (omp)](https://omp.sh): switch model roles and
 - Full catalog from `omp config list --json` (500+ keys) with current values, types, and descriptions. 全量设置目录，含当前值/类型/描述。
 - ~200 commonly-tweaked keys have curated Chinese names & explanations; others fall back to the upstream English description. 高频设置项内置中文标注，其余回退英文描述。
 - Scalar settings (boolean / number / string / enum) are editable inline; array & nested block values are shown read-only. 标量项可直接改，数组/嵌套块只读展示。
+- Sidebar category navigation: ~35 semantic categories sorted by size; search shows per-category hit counts and dims empty ones. 设置页按 ~35 个语义大类做侧栏导航（按项数排序），搜索时侧栏显示各组命中数、零命中置灰。
 - Search + "only customized" filter; badges distinguish keys you have set from defaults. 搜索 + 只看已自定义；徽章区分自定义项与默认值。
 
 ## Requirements / 依赖
@@ -56,6 +58,8 @@ Server binds to `127.0.0.1` only. Value/role inputs are validated against a whit
 |---|---|---|
 | `/api/state` | GET | Current roles (parsed from config.yml) + full model catalog (`omp models --json`) |
 | `/api/set` | POST | `{"role": "...", "value": "..."}` — backup + targeted write |
+| `/api/settings` | GET | Full settings catalog (`omp config list --json`) + zh annotations + `__groupmap` |
+| `/api/set-key` | POST | `{"key": "...", "value": "..."}` — type-coerced scalar write, backup + targeted line edit |
 
 ## License
 

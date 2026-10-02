@@ -23,6 +23,7 @@
            max-width: 360px; }
   select.group { min-width: 180px; max-width: 220px; }
   .role.editing { flex-wrap: wrap; }
+  .role.editing select { display: inline-block; }
   button { background: #2d6cdf; color: #fff; border: 0; border-radius: 6px;
            padding: 6px 14px; cursor: pointer; font-size: 13px; }
   button.ghost { background: transparent; border: 1px solid #3a4050; color: #8b93a1; }
@@ -54,6 +55,29 @@
   .row .save { padding: 4px 12px; font-size: 12px; }
   .row input:disabled, .row select:disabled { opacity: .45; }
   .count { font-size: 12px; color: #6b7280; }
+  .settings-layout { display: flex; gap: 14px; align-items: flex-start; }
+  #group-nav { flex: 0 0 200px; width: 200px; position: sticky; top: 12px;
+               max-height: calc(100vh - 60px); overflow-y: auto;
+               background: #1c1f26; border: 1px solid #2a2e37; border-radius: 8px; padding: 6px; }
+  .nav-item { display: flex; justify-content: space-between; align-items: center; gap: 6px;
+              padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 12px; color: #9aa2b1; }
+  .nav-item:hover { background: #232732; color: #d7dae0; }
+  .nav-item.active { background: #2d6cdf; color: #fff; }
+  .nav-item.dim { opacity: .35; }
+  .nav-item .gname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nav-item .cnt { flex: none; font-size: 10px; color: #6b7280; background: #232732;
+                   border-radius: 8px; padding: 0 6px; min-width: 14px; text-align: center; }
+  .nav-item.active .cnt { background: rgba(255,255,255,.18); color: #fff; }
+  #settings { flex: 1; min-width: 0; }
+  .empty-hint { color: #6b7280; font-size: 13px; padding: 24px 0; text-align: center; }
+  @media (max-width: 700px) {
+    .settings-layout { flex-direction: column; }
+    #group-nav { position: static; width: auto; flex: none; max-height: none;
+                 align-self: stretch; max-width: 100%;
+                 display: flex; overflow-x: auto; overflow-y: hidden; gap: 4px; padding: 4px; }
+    .nav-item { flex: 0 0 auto; }
+    .nav-item .gname { white-space: nowrap; }
+  }
 </style>
 </head>
 <body>
@@ -70,7 +94,10 @@
     <label><input type="checkbox" id="onlyCustom"> 只看已自定义</label>
     <span class="count" id="count"></span>
   </div>
-  <div id="settings"></div>
+  <div class="settings-layout">
+    <nav id="group-nav"></nav>
+    <div id="settings"></div>
+  </div>
 </div>
 <div id="toast"></div>
 <script>
@@ -175,13 +202,27 @@ function roleRow(role, value) {
 }
 
 /* ---------- 全部设置 ---------- */
-async function loadSettings() {
-  const r = await fetch('/api/settings').then(x => x.json());
-  if (r.error) { toast(r.error, true); return; }
-  settingsCache = r.items;
-  renderSettings();
-  document.getElementById('q').oninput = renderSettings;
-  document.getElementById('onlyCustom').onchange = renderSettings;
+let curGroup = null;        // 当前选中的大类
+let preSearchGroup = null;  // 搜索前所在大类，清空搜索时恢复
+let groupMap = {};          // __groupmap 语义归组：键或命名空间前缀 → 大类名
+
+function groupNameFor(key, fallback) {
+  if (groupMap[key]) return groupMap[key]; // 1) 精确键优先
+  let best = null, bestLen = -1;
+  for (const p in groupMap) {
+    if (key.length > p.length && key[p.length] === '.' &&
+        key.startsWith(p) && p.length > bestLen) {
+      best = groupMap[p]; bestLen = p.length; // 2) 最长命名空间前缀
+    }
+  }
+  if (best) return best;
+  return fallback;                          // 3) 回退 __groups（服务端组名）
+}
+
+function groupList() {
+  const totals = new Map();
+  for (const it of settingsCache) totals.set(it.group, (totals.get(it.group) || 0) + 1);
+  return [...totals.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'zh'));
 }
 
 function filtered() {
@@ -194,22 +235,84 @@ function filtered() {
      (it.desc || '').toLowerCase().includes(q)));
 }
 
-function renderSettings() {
-  const items = filtered();
-  document.getElementById('count').textContent = `${items.length} / ${settingsCache.length} 项`;
+function hitsByGroup() {
+  const hits = new Map();
+  for (const it of filtered()) hits.set(it.group, (hits.get(it.group) || 0) + 1);
+  return hits;
+}
+
+function isFiltering() {
+  return document.getElementById('q').value.trim() !== '' ||
+         document.getElementById('onlyCustom').checked;
+}
+
+function applyFilter(jump) {
+  const searching = document.getElementById('q').value.trim() !== '';
+  if (searching && preSearchGroup === null) preSearchGroup = curGroup;
+  if (!searching && preSearchGroup !== null) { // 清空搜索 → 回到搜索前的分类
+    curGroup = preSearchGroup; preSearchGroup = null;
+  }
+  const hits = hitsByGroup();
+  if (jump && !(hits.get(curGroup) > 0)) {     // 当前分类无命中 → 跳到首个命中的分类
+    const first = [...hits.keys()][0];
+    if (first) curGroup = first;
+  }
+  if (!groupList().some(([g]) => g === curGroup)) curGroup = groupList()[0]?.[0] ?? null;
+  renderNav(hits);
+  renderGroup();
+}
+
+async function loadSettings() {
+  const r = await fetch('/api/settings').then(x => x.json());
+  if (r.error) { toast(r.error, true); return; }
+  groupMap = r.groupmap || {};
+  settingsCache = r.items;
+  for (const it of settingsCache) it.group = groupNameFor(it.key, it.group);
+  applyFilter(false);
+  document.getElementById('q').oninput = () => applyFilter(true);
+  document.getElementById('onlyCustom').onchange = () => applyFilter(true);
+}
+
+function renderNav(hits) {
+  const filtering = isFiltering();
+  const nav = document.getElementById('group-nav');
+  nav.innerHTML = '';
+  for (const [g, total] of groupList()) {
+    const hit = hits.get(g) || 0;
+    const d = document.createElement('div');
+    d.className = 'nav-item' + (g === curGroup ? ' active' : '') + (filtering && !hit ? ' dim' : '');
+    d.title = `${g}（${total} 项）`;
+    const nm = document.createElement('span');
+    nm.className = 'gname'; nm.textContent = g;
+    const c = document.createElement('span');
+    c.className = 'cnt'; c.textContent = filtering ? hit : total;
+    d.append(nm, c);
+    d.onclick = () => { curGroup = g; renderNav(hitsByGroup()); renderGroup(); };
+    nav.appendChild(d);
+  }
+}
+
+function renderGroup() {
+  const filtering = isFiltering();
   const box = document.getElementById('settings');
   box.innerHTML = '';
-  let lastGroup = null;
-  for (const it of items) {
-    if (it.group !== lastGroup) {
-      lastGroup = it.group;
-      const h = document.createElement('div');
-      h.className = 'grp';
-      h.innerHTML = `${it.group}<small>${items.filter(x=>x.group===it.group).length} 项</small>`;
-      box.appendChild(h);
-    }
-    box.appendChild(settingRow(it));
+  if (!curGroup) return;
+  const rows = filtered().filter(it => it.group === curGroup);
+  const total = (groupList().find(([g]) => g === curGroup) || [null, 0])[1];
+  const h = document.createElement('div');
+  h.className = 'grp';
+  h.innerHTML = `<span class="grp-name"></span><small></small>`;
+  h.querySelector('.grp-name').textContent = curGroup;
+  h.querySelector('small').textContent = filtering ? `${rows.length} / ${total} 项命中` : `${total} 项`;
+  box.appendChild(h);
+  for (const it of rows) box.appendChild(settingRow(it));
+  if (!rows.length) {
+    const e = document.createElement('div');
+    e.className = 'empty-hint';
+    e.textContent = '该分类下无匹配设置项';
+    box.appendChild(e);
   }
+  document.getElementById('count').textContent = `${filtered().length} / ${settingsCache.length} 项`;
 }
 
 function settingRow(it) {
@@ -272,9 +375,9 @@ function settingRow(it) {
       body: JSON.stringify({key: it.key, value: input.value})}).then(x => x.json());
     if (r.ok) toast(`${it.key} → ${input.value}（已备份，写后 omp 即时生效）`);
     else { toast('失败: ' + r.error, true); return; }
+    const y = window.scrollY;
     await loadSettings();
-    const box = document.getElementById('settings');
-    box.scrollIntoView; window.scrollTo(window.scrollX, window.scrollY); // 保持位置
+    window.scrollTo(window.scrollX, y); // 保持滚动位置
   };
   head.appendChild(save);
   div.appendChild(head);
