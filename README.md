@@ -22,7 +22,7 @@ A tiny local web UI for [oh-my-pi (omp)](https://omp.sh): switch model roles and
 **全部设置 / All settings**
 
 - Full catalog from `omp config list --json` (500+ keys) with current values, types, and descriptions. 全量设置目录，含当前值/类型/描述。
-- All 528 keys carry detailed curated Chinese names & explanations (upstream English text is available on hover). 全部 528 项均有详细中文说明（上游英文原文悬停可见）。
+- All 529 keys carry detailed curated Chinese names & explanations (upstream English text is available on hover). 全部 529 项均有详细中文说明（上游英文原文悬停可见）。
 - Scalar settings (boolean / number / string / enum) are editable inline; array & nested block values are shown read-only. 标量项可直接改，数组/嵌套块只读展示。
 - Sidebar category navigation: ~35 semantic categories sorted by size; search shows per-category hit counts and dims empty ones. 设置页按 ~35 个语义大类做侧栏导航（按项数排序），搜索时侧栏显示各组命中数、零命中置灰。
 - Search + "only customized" filter; badges distinguish keys you have set from defaults. 搜索 + 只看已自定义；徽章区分自定义项与默认值。
