@@ -384,11 +384,12 @@ function settingRow(it) {
 
   const desc = document.createElement('div');
   desc.className = 'desc';
-  const bits = [];
-  if (it.zh) bits.push(it.zh);
-  if (it.desc) bits.push(it.desc);
-  bits.push(`类型: ${it.type}`);
+  const TYPE_ZH = {boolean:'布尔', number:'数字', integer:'数字', string:'字符串',
+                   enum:'枚举', array:'数组', record:'键值表'};
+  const bits = [it.zh || it.key.split('.').pop()];
+  bits.push(`类型: ${TYPE_ZH[it.type] ?? it.type}`);
   desc.textContent = bits.join(' · ');
+  if (it.desc) desc.title = it.desc; // 英文原文悬停可见
   div.appendChild(desc);
   return div;
 }
