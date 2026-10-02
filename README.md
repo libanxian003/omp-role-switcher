@@ -1,18 +1,25 @@
-# omp 模型角色切换器 / omp Model Role Switcher
+# omp 设置中心 / omp Settings Web UI
 
-A tiny local web UI to switch [oh-my-pi (omp)](https://omp.sh) model roles by clicking — no more digging through the TUI `/model` hub.
+A tiny local web UI for [oh-my-pi (omp)](https://omp.sh): switch model roles and edit all settings in Chinese, by clicking.
 
-一个本地 Web 小程序：在浏览器里点击切换 omp 的 `modelRoles`，替代 TUI 内 `/model`（Alt+M）的多层操作。改动即时生效，无需重启会话。
+一个本地 Web 小程序：浏览器里点击切换 omp 的 `modelRoles`、修改全部设置（中文界面），替代 TUI 内 `/model` 与手编 `config.yml`。改动写入后 omp 即时生效，无需重启会话。
 
-![screenshot](docs/screenshot.png)
+| 模型角色 / Roles | 全部设置 / Settings |
+|---|---|
+| ![roles](docs/screenshot-roles.png) | ![settings](docs/screenshot-settings.png) |
 
 ## Features / 功能
 
-- **Role matrix** — lists every configured role (`default`, `smol`, `slow`, `plan`, `vision`, `task`, `commit`, `tiny`, `web`, …) with a one-line purpose hint. 列出全部已配置角色与用途注释。
-- **Two-level picker** — first pick a provider group (with model count), then a model within it; no scrolling through a 270+ item list. 两级选择：先选供应商分组（带数量），再选组内模型。
-- **Auto-positioning** — opening the picker jumps to the current value's group and selects it. 打开时自动定位当前值所在分组。
-- **Alias fallback** — values not in the catalog (`@role` aliases, custom selectors) are kept as a "(current)" entry and never lost. 别名与目录外写法兜底保留。
-- **Safe writes** — byte-precise targeted edit of `~/.omp/agent/config.yml` with automatic backup; comments and line endings preserved. 见下文安全设计。
+**模型角色 / Model roles**
+
+- Role matrix with two-level picker: provider group → model; auto-positions on the current value; `@role` aliases kept as a fallback entry. 两级选择（供应商分组→组内模型），自动定位当前值，别名兜底。
+
+**全部设置 / All settings**
+
+- Full catalog from `omp config list --json` (500+ keys) with current values, types, and descriptions. 全量设置目录，含当前值/类型/描述。
+- ~200 commonly-tweaked keys have curated Chinese names & explanations; others fall back to the upstream English description. 高频设置项内置中文标注，其余回退英文描述。
+- Scalar settings (boolean / number / string / enum) are editable inline; array & nested block values are shown read-only. 标量项可直接改，数组/嵌套块只读展示。
+- Search + "only customized" filter; badges distinguish keys you have set from defaults. 搜索 + 只看已自定义；徽章区分自定义项与默认值。
 
 ## Requirements / 依赖
 
@@ -34,9 +41,10 @@ Open [http://127.0.0.1:8788](http://127.0.0.1:8788), click **切换** on a role,
 
 `omp config set` rewrites the whole file and strips your comments. This tool never calls it. Instead:
 
-1. **Targeted line edit** — reads `~/.omp/agent/config.yml` and regex-replaces only the target role's line.
-2. **Byte-precise I/O** — `read_bytes`/`write_bytes` with original line-ending detection (LF vs CRLF), so everything except the edited line stays byte-identical.
+1. **Targeted line edit** — reads `~/.omp/agent/config.yml` and regex-replaces only the target key's line; keys not yet present are inserted at the correct nesting level.
+2. **Byte-precise I/O** — `read_bytes`/`write_bytes` with original line-ending detection (LF vs CRLF), so everything except the edited/inserted lines stays byte-identical.
 3. **Automatic backup** — every write first copies the config to `config.yml.bak-role-switcher-<timestamp>`.
+4. **Type validation** — values are coerced per the type reported by `omp config list` (boolean/number/string/enum); arrays and nested blocks are read-only.
 
 Server binds to `127.0.0.1` only. Value/role inputs are validated against a whitelist regex before touching the file.
 

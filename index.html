@@ -2,13 +2,17 @@
 <html lang="zh">
 <head>
 <meta charset="utf-8">
-<title>omp 模型角色切换器</title>
+<title>omp 设置中心</title>
 <style>
   :root { color-scheme: dark; }
   body { font-family: "Segoe UI", system-ui, sans-serif; background: #16181d;
-         color: #d7dae0; margin: 0 auto; padding: 24px; max-width: 640px; }
+         color: #d7dae0; margin: 0 auto; padding: 20px; max-width: 860px; }
   h1 { font-size: 18px; margin: 0 0 4px; }
-  .sub { color: #8b93a1; font-size: 12px; margin-bottom: 20px; word-break: break-all; }
+  .sub { color: #8b93a1; font-size: 12px; margin-bottom: 14px; word-break: break-all; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+  .tabs button { background: #232732; border: 1px solid #3a4050; color: #8b93a1;
+                 border-radius: 8px; padding: 7px 18px; cursor: pointer; font-size: 14px; }
+  .tabs button.active { background: #2d6cdf; border-color: #2d6cdf; color: #fff; }
   .role { display: flex; align-items: center; gap: 12px; padding: 10px 14px;
           border: 1px solid #2a2e37; border-radius: 8px; margin-bottom: 8px; background: #1c1f26; }
   .role .name { width: 110px; font-weight: 600; }
@@ -23,28 +27,81 @@
            padding: 6px 14px; cursor: pointer; font-size: 13px; }
   button.ghost { background: transparent; border: 1px solid #3a4050; color: #8b93a1; }
   button:hover { filter: brightness(1.15); }
-  .editing select { display: block; }
   #toast { position: fixed; bottom: 20px; right: 20px; background: #234; padding: 10px 16px;
            border-radius: 8px; display: none; font-size: 13px; border: 1px solid #3a4050; }
-  #err { color: #ff8080; }
+  #toast.bad { background: #4a1d1d; border-color: #a33; }
+  .toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+  .toolbar input[type=text] { flex: 1; min-width: 240px; background: #232732; color: #d7dae0;
+           border: 1px solid #3a4050; border-radius: 6px; padding: 7px 10px; font-size: 13px; }
+  .toolbar label { font-size: 12px; color: #8b93a1; display: flex; gap: 5px; align-items: center; cursor: pointer; }
+  .grp { margin: 16px 0 6px; font-size: 14px; font-weight: 700; color: #9fc3ff;
+         border-bottom: 1px solid #2a2e37; padding-bottom: 4px; }
+  .grp small { color: #6b7280; font-weight: 400; margin-left: 8px; }
+  .row { border: 1px solid #242833; border-radius: 8px; background: #1c1f26;
+         padding: 8px 12px; margin-bottom: 6px; }
+  .row .head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .row .zhname { font-size: 13px; font-weight: 600; min-width: 150px; }
+  .row .key { font-family: Consolas, monospace; font-size: 11px; color: #6b7280; }
+  .row .badge { font-size: 10px; border-radius: 4px; padding: 1px 6px; }
+  .badge.custom { background: #274a2d; color: #8ee08e; }
+  .badge.default { background: #2b2f3a; color: #6b7280; }
+  .badge.ro { background: #4a3a1d; color: #e0c98e; }
+  .row input[type=text] { background: #232732; color: #d7dae0; border: 1px solid #3a4050;
+           border-radius: 6px; padding: 5px 8px; font-size: 12px; width: 220px;
+           font-family: Consolas, monospace; }
+  .row select { display: inline-block; width: auto; min-width: 90px; }
+  .row .desc { font-size: 11px; color: #8b93a1; margin-top: 4px; line-height: 1.5; }
+  .row .save { padding: 4px 12px; font-size: 12px; }
+  .row input:disabled, .row select:disabled { opacity: .45; }
+  .count { font-size: 12px; color: #6b7280; }
 </style>
 </head>
 <body>
-<h1>omp 模型角色切换器</h1>
+<h1>omp 设置中心</h1>
 <div class="sub" id="cfg"></div>
-<div id="roles"></div>
+<div class="tabs">
+  <button id="tab-roles" class="active">模型角色</button>
+  <button id="tab-settings">全部设置</button>
+</div>
+<div id="view-roles"></div>
+<div id="view-settings" style="display:none">
+  <div class="toolbar">
+    <input type="text" id="q" placeholder="搜索：键名 / 中文名 / 描述…">
+    <label><input type="checkbox" id="onlyCustom"> 只看已自定义</label>
+    <span class="count" id="count"></span>
+  </div>
+  <div id="settings"></div>
+</div>
 <div id="toast"></div>
 <script>
-let models = [];
+let models = [], settingsCache = [];
 const roleComment = {"default":"主会话模型","smol":"轻量快速任务","slow":"深度推理",
   "plan":"规划模式","vision":"图像理解","task":"子代理","commit":"提交信息生成",
   "tiny":"极小分类/标题","web":"网络搜索","advisor":"顾问评审"};
 
+/* ---------- 通用 ---------- */
+function toast(msg, bad) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.display = 'block';
+  t.className = bad ? 'bad' : '';
+  setTimeout(() => t.style.display = 'none', 4000);
+}
+document.getElementById('tab-roles').onclick = () => switchTab('roles');
+document.getElementById('tab-settings').onclick = () => switchTab('settings');
+function switchTab(which) {
+  document.getElementById('tab-roles').classList.toggle('active', which === 'roles');
+  document.getElementById('tab-settings').classList.toggle('active', which === 'settings');
+  document.getElementById('view-roles').style.display = which === 'roles' ? '' : 'none';
+  document.getElementById('view-settings').style.display = which === 'settings' ? '' : 'none';
+  if (which === 'settings' && !document.getElementById('settings').childElementCount) loadSettings();
+}
+
+/* ---------- 模型角色 ---------- */
 async function load() {
   const r = await fetch('/api/state').then(x => x.json());
   models = r.models;
   document.getElementById('cfg').textContent = r.config + ' · 共 ' + r.models.length + ' 个可用模型';
-  const box = document.getElementById('roles');
+  const box = document.getElementById('view-roles');
   box.innerHTML = '';
   for (const [role, value] of Object.entries(r.roles)) {
     box.appendChild(roleRow(role, value));
@@ -54,7 +111,6 @@ async function load() {
 function roleRow(role, value) {
   const div = document.createElement('div');
   div.className = 'role';
-  // 第一级：按供应商分组
   const groups = {};
   for (const m of models) (groups[m.provider] ??= []).push(m);
   const gsel = document.createElement('select');
@@ -65,7 +121,6 @@ function roleRow(role, value) {
     o.textContent = `${p} (${list.length})`;
     gsel.appendChild(o);
   }
-  // 当前值可能是别名/@role/带后缀，目录里没有则归入“当前”分组
   const inCatalog = models.some(m => m.selector === value);
   if (!inCatalog) {
     const o = document.createElement('option');
@@ -73,7 +128,6 @@ function roleRow(role, value) {
     o.textContent = `(当前) ${value}`;
     gsel.prepend(o);
   }
-  // 第二级：组内模型
   const msel = document.createElement('select');
   function fillModels(group) {
     msel.innerHTML = '';
@@ -91,7 +145,6 @@ function roleRow(role, value) {
     }
   }
   gsel.onchange = () => fillModels(gsel.value);
-  // 初始分组定位到当前值所在供应商
   gsel.value = inCatalog ? (models.find(m => m.selector === value)?.provider ?? Object.keys(groups)[0])
                          : '__current__';
   fillModels(gsel.value);
@@ -111,7 +164,7 @@ function roleRow(role, value) {
       const r = await fetch('/api/set', {method:'POST',
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({role, value: msel.value})}).then(x => x.json());
-      toast(r.ok ? `${role} → ${msel.value}（已备份 config.yml）` : ('失败: ' + r.error));
+      toast(r.ok ? `${role} → ${msel.value}（已备份 config.yml，即时生效）` : ('失败: ' + r.error), !r.ok);
       load();
     };
     no.onclick = () => load();
@@ -121,11 +174,122 @@ function roleRow(role, value) {
   return div;
 }
 
-function toast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.style.display = 'block';
-  setTimeout(() => t.style.display = 'none', 4000);
+/* ---------- 全部设置 ---------- */
+async function loadSettings() {
+  const r = await fetch('/api/settings').then(x => x.json());
+  if (r.error) { toast(r.error, true); return; }
+  settingsCache = r.items;
+  renderSettings();
+  document.getElementById('q').oninput = renderSettings;
+  document.getElementById('onlyCustom').onchange = renderSettings;
 }
+
+function filtered() {
+  const q = document.getElementById('q').value.trim().toLowerCase();
+  const onlyCustom = document.getElementById('onlyCustom').checked;
+  return settingsCache.filter(it =>
+    (!onlyCustom || it.custom) &&
+    (!q || it.key.toLowerCase().includes(q) ||
+     (it.name || '').includes(q) || (it.zh || '').includes(q) ||
+     (it.desc || '').toLowerCase().includes(q)));
+}
+
+function renderSettings() {
+  const items = filtered();
+  document.getElementById('count').textContent = `${items.length} / ${settingsCache.length} 项`;
+  const box = document.getElementById('settings');
+  box.innerHTML = '';
+  let lastGroup = null;
+  for (const it of items) {
+    if (it.group !== lastGroup) {
+      lastGroup = it.group;
+      const h = document.createElement('div');
+      h.className = 'grp';
+      h.innerHTML = `${it.group}<small>${items.filter(x=>x.group===it.group).length} 项</small>`;
+      box.appendChild(h);
+    }
+    box.appendChild(settingRow(it));
+  }
+}
+
+function settingRow(it) {
+  const div = document.createElement('div');
+  div.className = 'row';
+  const head = document.createElement('div');
+  head.className = 'head';
+  const badge = document.createElement('span');
+  if (it.custom) { badge.className = 'badge custom'; badge.textContent = '已自定义'; }
+  else { badge.className = 'badge default'; badge.textContent = '默认值'; }
+  if (!it.editable) {
+    badge.className = 'badge ro';
+    badge.textContent = '只读（数组/嵌套）';
+  }
+  head.innerHTML = `<span class="zhname"></span><span class="key"></span>`;
+  head.querySelector('.zhname').textContent = it.name || it.key.split('.').pop();
+  head.querySelector('.key').textContent = it.key;
+  head.appendChild(badge);
+
+  let input;
+  const cur = it.value === null || it.value === undefined ? '' : String(it.value);
+  if (!it.editable) {
+    input = document.createElement('input');
+    input.type = 'text'; input.disabled = true; input.value =
+      it.value === undefined ? '(无)' : JSON.stringify(it.value);
+  } else if (it.type === 'boolean') {
+    input = document.createElement('select');
+    for (const [v, label] of [['true','true（开）'], ['false','false（关）']]) {
+      const o = document.createElement('option');
+      o.value = v; o.textContent = label;
+      if (cur === v) o.selected = true;
+      input.appendChild(o);
+    }
+  } else if (it.options && it.options.length) {
+    input = document.createElement('select');
+    for (const v of it.options) {
+      const o = document.createElement('option');
+      o.value = v; o.textContent = v;
+      if (cur === v) o.selected = true;
+      input.appendChild(o);
+    }
+    if (![...input.options].some(o => o.value === cur)) {
+      const o = document.createElement('option');
+      o.value = cur; o.textContent = cur + '（当前）'; o.selected = true;
+      input.prepend(o);
+    }
+  } else {
+    input = document.createElement('input');
+    input.type = 'text';
+    input.value = cur;
+  }
+  head.appendChild(input);
+
+  const save = document.createElement('button');
+  save.className = 'save'; save.textContent = '保存';
+  if (!it.editable) save.disabled = true;
+  save.onclick = async () => {
+    const r = await fetch('/api/set-key', {method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({key: it.key, value: input.value})}).then(x => x.json());
+    if (r.ok) toast(`${it.key} → ${input.value}（已备份，写后 omp 即时生效）`);
+    else { toast('失败: ' + r.error, true); return; }
+    await loadSettings();
+    const box = document.getElementById('settings');
+    box.scrollIntoView; window.scrollTo(window.scrollX, window.scrollY); // 保持位置
+  };
+  head.appendChild(save);
+  div.appendChild(head);
+
+  const desc = document.createElement('div');
+  desc.className = 'desc';
+  const bits = [];
+  if (it.zh) bits.push(it.zh);
+  if (it.desc) bits.push(it.desc);
+  bits.push(`类型: ${it.type}`);
+  desc.textContent = bits.join(' · ');
+  div.appendChild(desc);
+  return div;
+}
+
 load();
 </script>
 </body>
