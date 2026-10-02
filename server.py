@@ -4,6 +4,8 @@
 - 模型角色：两级分组选择器，点击切换 modelRoles。
 - 全部设置：读取 `omp config list --json` 全量目录（键/值/类型/描述），
   标量项（布尔/数字/字符串/枚举）定向编辑 config.yml；数组与嵌套块只读展示。
+- 用量：透传 `omp usage --json` 的额度/用量报告（各供应商窗口限额、
+  已用/剩余、重置时间、重置额度券），供「用量」页签做可视化。
 
 安全设计：不用 `omp config set`（会重写整文件并剥离注释）；按字节读写
 ~/.omp/agent/config.yml，只替换/插入目标行并沿用原行尾；每次写入前自动备份。
@@ -338,6 +340,30 @@ def list_settings():
             "groups_en": zh.get("__groups_en", {})}
 
 
+# ---------- 用量（omp usage --json） ----------
+
+def usage_report():
+    """跑 `omp usage --json` 并透传报告；失败返回 {"error": ...}。
+    报告中 metadata.email 属本机账号信息，本地面板原样展示；
+    但凭据/token 从不进入该 JSON（omp 自己也不输出）。"""
+    try:
+        p = subprocess.run(
+            ["omp", "usage", "--json", "--no-extensions"],
+            capture_output=True, text=True, shell=False,
+            encoding="utf-8", errors="replace", timeout=120)
+    except subprocess.TimeoutExpired:
+        return {"error": "omp usage 超时（120s）"}
+    except OSError as e:
+        return {"error": f"无法执行 omp: {e}"}
+    if p.returncode != 0 and not p.stdout.strip():
+        err = (p.stderr or "").strip().splitlines()
+        return {"error": err[0] if err else f"omp usage 退出码 {p.returncode}"}
+    try:
+        return json.loads(p.stdout)
+    except json.JSONDecodeError:
+        return {"error": "omp usage 输出不是合法 JSON"}
+
+
 class Handler(BaseHTTPRequestHandler):
     def _send(self, code, body, ctype="application/json; charset=utf-8"):
         data = body if isinstance(body, bytes) else body.encode('utf-8')
@@ -361,6 +387,8 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, json.dumps(list_settings(), ensure_ascii=False))
         elif path == "/api/visibility":
             self._send(200, json.dumps(visibility_state(), ensure_ascii=False))
+        elif path == "/api/usage":
+            self._send(200, json.dumps(usage_report(), ensure_ascii=False))
         else:
             self._send(404, "{}")
 

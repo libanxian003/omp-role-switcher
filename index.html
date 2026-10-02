@@ -102,6 +102,31 @@
   .vm-bar { position: sticky; bottom: 0; background: #16181d; padding: 10px 0;
             display: flex; gap: 10px; align-items: center; border-top: 1px solid #2a2e37; }
   .vm-bar .dirty { font-size: 12px; color: #e0c98e; }
+  /* ---------- 用量 / Usage ---------- */
+  .u-card { border: 1px solid #2a2e37; border-radius: 8px; background: #1c1f26;
+            padding: 10px 12px; margin-bottom: 10px; }
+  .u-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+  .u-head .pname { font-weight: 700; color: #9fc3ff; font-size: 14px; }
+  .u-head .meta { font-size: 12px; color: #8b93a1; }
+  .u-head .ftime { margin-left: auto; font-size: 11px; color: #6b7280; }
+  .u-row { padding: 6px 0; border-top: 1px solid #242833; }
+  .u-row .ltop { display: flex; justify-content: space-between; align-items: baseline;
+                 gap: 10px; font-size: 13px; }
+  .u-row .lname { font-weight: 600; }
+  .u-row .lscope { font-size: 11px; color: #6b7280; margin-left: 8px; font-weight: 400; }
+  .u-row .amt { font-family: Consolas, monospace; font-size: 12px; color: #d7dae0; }
+  .u-bar { height: 8px; background: #232732; border-radius: 4px; margin-top: 6px; overflow: hidden; }
+  .u-fill { height: 100%; border-radius: 4px; background: #3fb27f;
+            transition: width .3s ease; }
+  .u-fill.warning { background: #e0b34a; }
+  .u-fill.exhausted, .u-fill.error { background: #e05a4a; }
+  .u-fill.unknown { background: #4a5062; }
+  .u-sub { display: flex; justify-content: space-between; gap: 10px;
+           font-size: 11px; color: #8b93a1; margin-top: 5px; flex-wrap: wrap; }
+  .u-sub .reset { color: #6b7280; }
+  .u-note { font-size: 11px; color: #8b93a1; padding: 4px 0 2px; border-top: 1px solid #242833;
+            line-height: 1.5; }
+  .u-extra { font-size: 11px; color: #8b93a1; margin-bottom: 8px; line-height: 1.6; }
 </style>
 </head>
 <body>
@@ -116,6 +141,7 @@
   <button id="tab-roles" class="active">模型角色</button>
   <button id="tab-settings">全部设置</button>
   <button id="tab-models">模型显示</button>
+  <button id="tab-usage">用量</button>
 </div>
 <div id="view-roles"></div>
 <div id="view-settings" style="display:none">
@@ -141,6 +167,14 @@
     <button id="vm-reset" class="ghost"></button>
     <span class="dirty" id="vm-dirty"></span>
   </div>
+</div>
+<div id="view-usage" style="display:none">
+  <div class="toolbar">
+    <button id="u-refresh"></button>
+    <label><input type="checkbox" id="u-auto"><span id="u-auto-text"></span></label>
+    <span class="count" id="u-updated"></span>
+  </div>
+  <div id="u-box"></div>
 </div>
 <div id="toast"></div>
 <script>
@@ -188,6 +222,18 @@ const T = {
     vmDefTag: '默认角色·始终显示',
     vmSaved: n => `已保存：显示 ${n} 个模型（已备份 config.yml，omp 即时生效）`,
     vmUnmanaged: 'config.yml 的 enabledModels 含 path 作用域等复杂结构，本页只读，请手工编辑。',
+    tabUsage: '用量',
+    uRefresh: '刷新', uAuto: '每 60 秒自动刷新',
+    uUpdated: ts => `更新于 ${ts}`,
+    uFetched: ts => `数据获取于 ${ts}`,
+    uLoading: '正在拉取用量数据…',
+    uEmpty: '暂无用量数据。请先在 omp 中 /login 登录供应商账号。',
+    uNoLimits: '无可用限额数据',
+    uCredits: n => `重置额度券 ×${n}`,
+    uRemain: v => `剩余 ${v}`,
+    uReset: '重置于 ', uResetNow: '即将重置',
+    uNoUsageAcct: n => `无用量端点的账号 ×${n}`,
+    uDisabledCred: n => `已停用凭据 ×${n}`,
   },
   en: {
     title: 'omp Settings Web',
@@ -224,6 +270,18 @@ const T = {
     vmDefTag: 'default role · always shown',
     vmSaved: n => `Saved: ${n} models shown (config.yml backed up; applies immediately)`,
     vmUnmanaged: 'enabledModels in config.yml uses path-scoped or nested entries; this page is read-only — edit it by hand.',
+    tabUsage: 'Usage',
+    uRefresh: 'Refresh', uAuto: 'Auto-refresh every 60s',
+    uUpdated: ts => `Updated ${ts}`,
+    uFetched: ts => `Data fetched ${ts}`,
+    uLoading: 'Fetching usage data…',
+    uEmpty: 'No usage data yet. Run /login in omp to add provider accounts.',
+    uNoLimits: 'No limit data available',
+    uCredits: n => `Reset credits ×${n}`,
+    uRemain: v => `${v} left`,
+    uReset: 'resets ', uResetNow: 'resetting soon',
+    uNoUsageAcct: n => `Accounts without usage endpoints ×${n}`,
+    uDisabledCred: n => `Disabled credentials ×${n}`,
   },
 };
 let LANG = localStorage.getItem('omp-ui-lang') === 'en' ? 'en' : 'zh';
@@ -248,6 +306,9 @@ function applyStaticLang() {
   document.getElementById('tab-roles').textContent = t().tabRoles;
   document.getElementById('tab-settings').textContent = t().tabSettings;
   document.getElementById('tab-models').textContent = t().tabModels;
+  document.getElementById('tab-usage').textContent = t().tabUsage;
+  document.getElementById('u-refresh').textContent = t().uRefresh;
+  document.getElementById('u-auto-text').textContent = t().uAuto;
   document.getElementById('vm-q').placeholder = t().vmSearch;
   document.getElementById('vm-save').textContent = t().vmSave;
   document.getElementById('vm-reset').textContent = t().vmReset;
@@ -260,6 +321,7 @@ function rerenderDynamic() { // 不整页重载：重渲染两个页签的动态
   load();
   if (settingsCache.length) { renderNav(hitsByGroup()); renderGroup(); }
   if (vm.models.length) renderModels();
+  if (us.data) renderUsage();
 }
 function setLang(lang) {
   if (LANG === lang) return;
@@ -281,15 +343,19 @@ function toast(msg, bad) {
 document.getElementById('tab-roles').onclick = () => switchTab('roles');
 document.getElementById('tab-settings').onclick = () => switchTab('settings');
 document.getElementById('tab-models').onclick = () => switchTab('models');
+document.getElementById('tab-usage').onclick = () => switchTab('usage');
 function switchTab(which) {
   document.getElementById('tab-roles').classList.toggle('active', which === 'roles');
   document.getElementById('tab-settings').classList.toggle('active', which === 'settings');
   document.getElementById('tab-models').classList.toggle('active', which === 'models');
+  document.getElementById('tab-usage').classList.toggle('active', which === 'usage');
   document.getElementById('view-roles').style.display = which === 'roles' ? '' : 'none';
   document.getElementById('view-settings').style.display = which === 'settings' ? '' : 'none';
   document.getElementById('view-models').style.display = which === 'models' ? '' : 'none';
+  document.getElementById('view-usage').style.display = which === 'usage' ? '' : 'none';
   if (which === 'settings' && !document.getElementById('settings').childElementCount) loadSettings();
   if (which === 'models') loadModels();
+  if (which === 'usage') { loadUsage(); startUsageTimer(); } else stopUsageTimer();
 }
 
 /* ---------- 模型角色 ---------- */
@@ -666,6 +732,214 @@ document.getElementById('vm-save').onclick = async () => {
   toast(t().vmSaved(r.visible.length));
   load(); // 刷新角色页下拉候选
 };
+/* ---------- 用量 / Usage（omp usage --json） ---------- */
+const us = { data: null, timer: null };
+const U_UNITS = { percent: '%', tokens: ' tok', requests: ' req', credits: ' cr',
+                  minutes: ' min', bytes: ' B', usd: ' $' };
+
+function fmtAmt(v, unit) {
+  if (v === null || v === undefined) return '—';
+  const n = unit === 'percent' ? Math.round(v) : (Number.isInteger(v) ? v : +v.toFixed(1));
+  return n + (U_UNITS[unit] ?? '');
+}
+function fmtDur(ms) { // 重置倒计时
+  if (ms <= 0) return t().uResetNow;
+  const s = Math.ceil(ms / 1000), d = Math.floor(s / 86400),
+        h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
+  if (LANG === 'zh')
+    return (d ? `${d} 天 ` : '') + (h ? `${h} 小时 ` : '') + (d || h ? '' : `${m} 分`);
+  return (d ? `${d}d ` : '') + (h ? `${d || h ? h : 0}h ` : '') + (d || h ? '' : `${m}m`);
+}
+function fmtTime(ts) {
+  const d = new Date(ts);
+  const sameDay = d.toDateString() === new Date().toDateString();
+  return d.toLocaleTimeString(LANG === 'zh' ? 'zh-CN' : 'en-US',
+    { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }) +
+    (sameDay ? '' : ' ' + d.toLocaleDateString(LANG === 'zh' ? 'zh-CN' : 'en-US'));
+}
+
+async function loadUsage() {
+  const btn = document.getElementById('u-refresh');
+  btn.disabled = true;
+  if (!us.data) {
+    const box = document.getElementById('u-box');
+    box.innerHTML = '';
+    const e = document.createElement('div');
+    e.className = 'empty-hint'; e.textContent = t().uLoading;
+    box.appendChild(e);
+  }
+  try {
+    const r = await fetch('/api/usage').then(x => x.json());
+    if (r && r.error) { toast(t().failed(r.error), true); showUsageMsg(r.error); }
+    else { us.data = r; renderUsage(); }
+  } catch (e) {
+    toast(t().failed(e.message || e), true);
+    if (!us.data) showUsageMsg(String(e));
+  }
+  btn.disabled = false;
+}
+function showUsageMsg(msg) {
+  if (us.data) return; // 有旧数据时只 toast，不清屏
+  const box = document.getElementById('u-box');
+  box.innerHTML = '';
+  const e = document.createElement('div');
+  e.className = 'empty-hint';
+  e.textContent = msg ? `${t().failed(msg)} — ${t().uEmpty}` : t().uEmpty;
+  box.appendChild(e);
+}
+
+function renderUsage() {
+  const d = us.data;
+  const box = document.getElementById('u-box');
+  box.innerHTML = '';
+  document.getElementById('u-updated').textContent = t().uUpdated(fmtTime(Date.now()));
+  for (const a of (d.accountsWithoutUsage || [])) {
+    const e = document.createElement('div');
+    e.className = 'u-extra';
+    e.textContent = '⚠ ' + [a.provider, a.email || a.accountId].filter(Boolean).join(' — ') +
+                    ' · ' + t().uNoUsageAcct(1).replace(/ ×1$/, '');
+    box.appendChild(e);
+  }
+  for (const c of (d.disabledCredentials || [])) {
+    const e = document.createElement('div');
+    e.className = 'u-extra';
+    e.textContent = '⚠ ' + [c.provider, c.email || c.accountId].filter(Boolean).join(' — ') +
+                    ' · ' + t().uDisabledCred(1).replace(/ ×1$/, '');
+    box.appendChild(e);
+  }
+  const reports = (d.reports || []);
+  if (!reports.length) {
+    const e = document.createElement('div');
+    e.className = 'empty-hint'; e.textContent = t().uEmpty;
+    box.appendChild(e);
+    return;
+  }
+  for (const rep of reports) box.appendChild(uCard(rep));
+}
+
+function uCard(rep) {
+  const card = document.createElement('div');
+  card.className = 'u-card';
+  const head = document.createElement('div');
+  head.className = 'u-head';
+  const pn = document.createElement('span');
+  pn.className = 'pname'; pn.textContent = rep.provider || '?';
+  head.appendChild(pn);
+  const md = rep.metadata || {};
+  const metaBits = [md.email, md.planType].filter(Boolean);
+  if (metaBits.length) {
+    const me = document.createElement('span');
+    me.className = 'meta'; me.textContent = metaBits.join(' · ');
+    head.appendChild(me);
+  }
+  if (rep.fetchedAt) {
+    const ft = document.createElement('span');
+    ft.className = 'ftime'; ft.textContent = t().uFetched(fmtTime(rep.fetchedAt));
+    head.appendChild(ft);
+  }
+  card.appendChild(head);
+
+  // 共享窗口（sharedGroup）在多个子供应商下重复出现，去重
+  const seen = new Set();
+  let shown = 0;
+  for (const l of (rep.limits || [])) {
+    const g = l.scope && l.scope.sharedGroup;
+    const key = (g || l.id || '') + '|' + ((l.window || {}).id || '');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    card.appendChild(uLimitRow(l));
+    shown++;
+  }
+  if (!shown && !(rep.notes || []).length) {
+    const e = document.createElement('div');
+    e.className = 'u-note'; e.style.borderTop = '0'; e.textContent = t().uNoLimits;
+    card.appendChild(e);
+  }
+  const rc = rep.resetCredits;
+  if (rc && rc.availableCount) {
+    const e = document.createElement('div');
+    e.className = 'u-note'; e.textContent = t().uCredits(rc.availableCount);
+    card.appendChild(e);
+  }
+  for (const n of (rep.notes || [])) {
+    const e = document.createElement('div');
+    e.className = 'u-note'; e.textContent = n;
+    card.appendChild(e);
+  }
+  return card;
+}
+
+function uLimitRow(l) {
+  const row = document.createElement('div');
+  row.className = 'u-row';
+  const amt = l.amount || {}, win = l.window || {};
+  const unit = amt.unit || 'percent';
+  const top = document.createElement('div');
+  top.className = 'ltop';
+  const nm = document.createElement('span');
+  nm.className = 'lname'; nm.textContent = l.label || l.id || '';
+  if (win.label && win.label !== l.label) {
+    const sc = document.createElement('span');
+    sc.className = 'lscope'; sc.textContent = win.label;
+    nm.appendChild(sc);
+  }
+  const am = document.createElement('span');
+  am.className = 'amt';
+  am.textContent = amt.limit != null
+    ? `${fmtAmt(amt.used, unit)} / ${fmtAmt(amt.limit, unit)}`
+    : fmtAmt(amt.used, unit);
+  top.append(nm, am);
+  row.appendChild(top);
+
+  const frac = amt.usedFraction != null
+    ? amt.usedFraction
+    : (amt.limit ? (amt.used || 0) / amt.limit : 0);
+  const bar = document.createElement('div');
+  bar.className = 'u-bar';
+  const fill = document.createElement('div');
+  fill.className = 'u-fill' + (l.status && l.status !== 'ok' ? ' ' + l.status : '');
+  fill.style.width = Math.min(100, Math.max(0, frac * 100)) + '%';
+  bar.appendChild(fill);
+  row.appendChild(bar);
+
+  const sub = document.createElement('div');
+  sub.className = 'u-sub';
+  const bits = [];
+  if (amt.remaining != null) bits.push(t().uRemain(fmtAmt(amt.remaining, unit)));
+  if (l.status && l.status !== 'ok') bits.push(l.status);
+  const left = document.createElement('span');
+  left.textContent = bits.join(' · ');
+  sub.appendChild(left);
+  if (win.resetsAt) {
+    const rs = document.createElement('span');
+    rs.className = 'reset'; rs.dataset.resetsAt = win.resetsAt;
+    rs.textContent = t().uReset + '…';
+    sub.appendChild(rs);
+  }
+  row.appendChild(sub);
+  return row;
+}
+
+function tickUsage() { // 每秒更新倒计时；勾选自动刷新时每 60s 重拉
+  document.querySelectorAll('#u-box [data-resets-at]').forEach(el => {
+    const ms = +el.dataset.resetsAt - Date.now();
+    el.textContent = t().uReset + fmtDur(ms);
+  });
+  if (document.getElementById('u-auto').checked && Date.now() - (us.lastPoll || 0) >= 60000) {
+    us.lastPoll = Date.now();
+    loadUsage();
+  }
+}
+function startUsageTimer() {
+  if (us.timer) return;
+  us.lastPoll = Date.now();
+  us.timer = setInterval(tickUsage, 1000);
+}
+function stopUsageTimer() {
+  if (us.timer) { clearInterval(us.timer); us.timer = null; }
+}
+document.getElementById('u-refresh').onclick = () => loadUsage();
+
 
 applyStaticLang();
 load();

@@ -31,6 +31,12 @@ A tiny local web UI for [oh-my-pi (omp)](https://omp.sh): switch model roles and
 
 - Choose which models appear in omp's `/model` picker, Ctrl+P cycling and this page's role dropdowns — per model or per provider, with search. Hidden models are **not disabled**: roles already assigned to them keep working. Writes `enabledModels` in `config.yml` (backed up, live-reloaded by omp); fully selected providers collapse to `provider/*`, the default role's model is pinned first and always shown, and patterns matching no current model (offline providers) are preserved. 按模型/按供应商勾选哪些模型出现在 omp 的 `/model` 选择器、Ctrl+P 轮换和本页角色下拉中；未勾选只是隐藏、不是禁用，已分配给角色的模型照常可用。写入 `enabledModels`（自动备份，omp 即时生效）。
 
+**用量 / Usage**
+
+- A visual dashboard mirroring `omp usage`: per-provider cards with progress bars for each rate-limit window (5h / 7d / weekly / monthly), used vs. remaining, live reset countdowns, account/plan info and reset-credit counts; shared windows are deduplicated. Manual refresh button + optional 60s auto-polling, friendly empty/error states. 复刻 omp `/usage` 的可视面板：按供应商分卡的限额进度条（5 小时/7 天/周/月窗口）、已用与剩余量、重置倒计时实时跳动、账号/套餐信息与重置额度券；共享窗口自动去重。手动刷新 + 可选 60 秒自动轮询，数据为空或拉取失败时给出提示而非白屏。
+
+![usage dashboard](docs/screenshot-usage.png)
+
 ![model visibility](docs/screenshot-models.png)
 
 ## Requirements / 依赖
@@ -70,6 +76,7 @@ Server binds to `127.0.0.1` only. Value/role inputs are validated against a whit
 | `/api/set` | POST | `{"role": "...", "value": "..."}` — backup + targeted write |
 | `/api/settings` | GET | Full settings catalog (`omp config list --json`) + zh annotations + `__groupmap` |
 | `/api/set-key` | POST | `{"key": "...", "value": "..."}` — type-coerced scalar write, backup + targeted line edit |
+| `/api/usage` | GET | `omp usage --json` passthrough — per-provider quota/usage reports |
 
 ## License
 
