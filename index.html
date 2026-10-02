@@ -623,6 +623,16 @@ function renderModels() {
     const name = document.createElement('span'); name.className = 'pname'; name.textContent = p;
     const cnt = document.createElement('span'); cnt.className = 'pcnt'; cnt.textContent = `${on} / ${total}`;
     head.append(name, cnt);
+    for (const [label, on] of [[t().vmAll, true], [t().vmNone, false]]) {
+      const b = document.createElement('button');
+      b.textContent = label; b.disabled = !vm.managed;
+      b.onclick = e => {
+        e.stopPropagation();
+        for (const m of vm.models) if (m.provider === p && m.selector !== vm.def) on ? vm.sel.add(m.selector) : vm.sel.delete(m.selector);
+        renderModels();
+      };
+      head.appendChild(b);
+    }
     head.onclick = () => { vm.open.has(p) ? vm.open.delete(p) : vm.open.add(p); renderModels(); };
     const ul = document.createElement('div');
     ul.className = 'vm-list';
