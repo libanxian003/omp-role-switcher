@@ -49,7 +49,7 @@ Open [http://127.0.0.1:8788](http://127.0.0.1:8788), click **切换** on a role,
 
 1. **Targeted line edit** — reads `~/.omp/agent/config.yml` and regex-replaces only the target key's line; keys not yet present are inserted at the correct nesting level.
 2. **Byte-precise I/O** — `read_bytes`/`write_bytes` with original line-ending detection (LF vs CRLF), so everything except the edited/inserted lines stays byte-identical.
-3. **Automatic backup** — every write first copies the config to `config.yml.bak-role-switcher-<timestamp>`.
+3. **Automatic backup** — every write first copies the config to `config.yml.bak-settings-center-<timestamp>`.
 4. **Type validation** — values are coerced per the type reported by `omp config list` (boolean/number/string/enum); arrays and nested blocks are read-only.
 
 Server binds to `127.0.0.1` only. Value/role inputs are validated against a whitelist regex before touching the file.
