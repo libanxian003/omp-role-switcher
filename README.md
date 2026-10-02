@@ -27,6 +27,12 @@ A tiny local web UI for [oh-my-pi (omp)](https://omp.sh): switch model roles and
 - Sidebar category navigation: ~35 semantic categories sorted by size; search shows per-category hit counts and dims empty ones. 设置页按 ~35 个语义大类做侧栏导航（按项数排序），搜索时侧栏显示各组命中数、零命中置灰。
 - Search + "only customized" filter; badges distinguish keys you have set from defaults. 搜索 + 只看已自定义；徽章区分自定义项与默认值。
 
+**模型显示 / Model visibility**
+
+- Choose which models appear in omp's `/model` picker, Ctrl+P cycling and this page's role dropdowns — per model or per provider, with search. Hidden models are **not disabled**: roles already assigned to them keep working. Writes `enabledModels` in `config.yml` (backed up, live-reloaded by omp); fully selected providers collapse to `provider/*`, the default role's model is pinned first and always shown, and patterns matching no current model (offline providers) are preserved. 按模型/按供应商勾选哪些模型出现在 omp 的 `/model` 选择器、Ctrl+P 轮换和本页角色下拉中；未勾选只是隐藏、不是禁用，已分配给角色的模型照常可用。写入 `enabledModels`（自动备份，omp 即时生效）。
+
+![model visibility](docs/screenshot-models.png)
+
 ## Requirements / 依赖
 
 - Python 3.8+ (standard library only, zero dependencies / 纯标准库，零第三方依赖)

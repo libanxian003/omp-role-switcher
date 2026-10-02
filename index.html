@@ -85,6 +85,23 @@
     .nav-item { flex: 0 0 auto; }
     .nav-item .gname { white-space: nowrap; }
   }
+  #view-models .vm-prov { border: 1px solid #2a2e37; border-radius: 8px; background: #1c1f26;
+                          margin-bottom: 8px; }
+  .vm-head { display: flex; align-items: center; gap: 10px; padding: 8px 12px; cursor: pointer; }
+  .vm-head .pname { font-weight: 700; color: #9fc3ff; flex: 1; }
+  .vm-head .pcnt { font-size: 12px; color: #8b93a1; }
+  .vm-head .caret { color: #6b7280; width: 12px; }
+  .vm-head button { padding: 3px 10px; font-size: 12px; }
+  .vm-list { padding: 2px 12px 8px 34px; display: none; }
+  .vm-prov.open .vm-list { display: block; }
+  .vm-item { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 12px; cursor: pointer; }
+  .vm-item .sel { font-family: Consolas, monospace; color: #6b7280; font-size: 11px; }
+  .vm-item.def .mname::after { content: attr(data-tag); margin-left: 6px; font-size: 10px;
+                               background: #274a2d; color: #8ee08e; border-radius: 4px; padding: 1px 5px; }
+  .vm-note { font-size: 12px; color: #8b93a1; margin-bottom: 10px; line-height: 1.6; }
+  .vm-bar { position: sticky; bottom: 0; background: #16181d; padding: 10px 0;
+            display: flex; gap: 10px; align-items: center; border-top: 1px solid #2a2e37; }
+  .vm-bar .dirty { font-size: 12px; color: #e0c98e; }
 </style>
 </head>
 <body>
@@ -98,6 +115,7 @@
 <div class="tabs">
   <button id="tab-roles" class="active">模型角色</button>
   <button id="tab-settings">全部设置</button>
+  <button id="tab-models">模型显示</button>
 </div>
 <div id="view-roles"></div>
 <div id="view-settings" style="display:none">
@@ -111,9 +129,22 @@
     <div id="settings"></div>
   </div>
 </div>
+<div id="view-models" style="display:none">
+  <div class="vm-note" id="vm-note"></div>
+  <div class="toolbar">
+    <input type="text" id="vm-q" placeholder="">
+    <span class="count" id="vm-count"></span>
+  </div>
+  <div id="vm-box"></div>
+  <div class="vm-bar">
+    <button id="vm-save"></button>
+    <button id="vm-reset" class="ghost"></button>
+    <span class="dirty" id="vm-dirty"></span>
+  </div>
+</div>
 <div id="toast"></div>
 <script>
-let models = [], settingsCache = [];
+let models = [], settingsCache = [], visibleSet = new Set();
 
 /* ---------- i18n：中英文切换 ---------- */
 const MACRO_GROUP_EN = {"AST 工具":"AST Tools","Git 与提交":"Git & Commits","会话与交互":"Session & Interaction",
@@ -147,6 +178,16 @@ const T = {
     typePrefix: '类型',
     typeName: ty => ({boolean:'布尔', number:'数字', integer:'数字', string:'字符串',
                       enum:'枚举', array:'数组', record:'键值表'}[ty] ?? ty),
+    tabModels: '模型显示',
+    vmNote: '勾选的模型会出现在 omp 的 /model 选择器、Ctrl+P 轮换和本页「模型角色」下拉中；未勾选的只是隐藏，不会被禁用——已分配给角色的模型照常工作。保存写入 config.yml 的 enabledModels（自动备份，omp 即时生效）。',
+    vmSearch: '搜索：供应商 / 模型名 / selector…',
+    vmCount: (a, b) => `显示 ${a} / ${b} 个模型`,
+    vmSave: '保存', vmReset: '撤销更改',
+    vmDirty: n => `${n} 处未保存更改`,
+    vmAll: '全选', vmNone: '全不选',
+    vmDefTag: '默认角色·始终显示',
+    vmSaved: n => `已保存：显示 ${n} 个模型（已备份 config.yml，omp 即时生效）`,
+    vmUnmanaged: 'config.yml 的 enabledModels 含 path 作用域等复杂结构，本页只读，请手工编辑。',
   },
   en: {
     title: 'omp Settings Web',
@@ -173,6 +214,16 @@ const T = {
     count: (a, b) => `${a} / ${b} items`,
     typePrefix: 'Type',
     typeName: ty => ty,
+    tabModels: 'Model Visibility',
+    vmNote: 'Checked models appear in omp\'s /model picker, Ctrl+P cycling, and the Model Roles dropdowns on this page. Unchecked models are only hidden, not disabled — models already assigned to roles keep working. Saving writes enabledModels in config.yml (backed up; omp picks it up immediately).',
+    vmSearch: 'Search: provider / model name / selector…',
+    vmCount: (a, b) => `Showing ${a} / ${b} models`,
+    vmSave: 'Save', vmReset: 'Discard changes',
+    vmDirty: n => `${n} unsaved change(s)`,
+    vmAll: 'All', vmNone: 'None',
+    vmDefTag: 'default role · always shown',
+    vmSaved: n => `Saved: ${n} models shown (config.yml backed up; applies immediately)`,
+    vmUnmanaged: 'enabledModels in config.yml uses path-scoped or nested entries; this page is read-only — edit it by hand.',
   },
 };
 let LANG = localStorage.getItem('omp-ui-lang') === 'en' ? 'en' : 'zh';
@@ -196,6 +247,10 @@ function applyStaticLang() {
   document.getElementById('h1').textContent = t().title;
   document.getElementById('tab-roles').textContent = t().tabRoles;
   document.getElementById('tab-settings').textContent = t().tabSettings;
+  document.getElementById('tab-models').textContent = t().tabModels;
+  document.getElementById('vm-q').placeholder = t().vmSearch;
+  document.getElementById('vm-save').textContent = t().vmSave;
+  document.getElementById('vm-reset').textContent = t().vmReset;
   document.getElementById('q').placeholder = t().searchPh;
   document.getElementById('only-custom-text').textContent = t().onlyCustom;
   document.getElementById('lang-zh').classList.toggle('active', LANG === 'zh');
@@ -204,6 +259,7 @@ function applyStaticLang() {
 function rerenderDynamic() { // 不整页重载：重渲染两个页签的动态内容
   load();
   if (settingsCache.length) { renderNav(hitsByGroup()); renderGroup(); }
+  if (vm.models.length) renderModels();
 }
 function setLang(lang) {
   if (LANG === lang) return;
@@ -224,18 +280,23 @@ function toast(msg, bad) {
 }
 document.getElementById('tab-roles').onclick = () => switchTab('roles');
 document.getElementById('tab-settings').onclick = () => switchTab('settings');
+document.getElementById('tab-models').onclick = () => switchTab('models');
 function switchTab(which) {
   document.getElementById('tab-roles').classList.toggle('active', which === 'roles');
   document.getElementById('tab-settings').classList.toggle('active', which === 'settings');
+  document.getElementById('tab-models').classList.toggle('active', which === 'models');
   document.getElementById('view-roles').style.display = which === 'roles' ? '' : 'none';
   document.getElementById('view-settings').style.display = which === 'settings' ? '' : 'none';
+  document.getElementById('view-models').style.display = which === 'models' ? '' : 'none';
   if (which === 'settings' && !document.getElementById('settings').childElementCount) loadSettings();
+  if (which === 'models') loadModels();
 }
 
 /* ---------- 模型角色 ---------- */
 async function load() {
   const r = await fetch('/api/state').then(x => x.json());
   models = r.models;
+  visibleSet = new Set(r.visible || r.models.map(m => m.selector));
   document.getElementById('cfg').textContent = r.config + ' · ' + t().modelsAvail(r.models.length);
   const box = document.getElementById('view-roles');
   box.innerHTML = '';
@@ -248,7 +309,8 @@ function roleRow(role, value) {
   const div = document.createElement('div');
   div.className = 'role';
   const groups = {};
-  for (const m of models) (groups[m.provider] ??= []).push(m);
+  for (const m of models)  // 只列「模型显示」中可见的模型；当前值即使被隐藏也保留
+    if (visibleSet.has(m.selector) || m.selector === value) (groups[m.provider] ??= []).push(m);
   const gsel = document.createElement('select');
   gsel.className = 'group';
   for (const [p, list] of Object.entries(groups).sort((a,b)=>a[0].localeCompare(b[0]))) {
@@ -504,6 +566,96 @@ function settingRow(it) {
   div.appendChild(desc);
   return div;
 }
+
+/* ---------- 模型显示（enabledModels） ---------- */
+const vm = { models: [], saved: new Set(), sel: new Set(), def: null, managed: true, open: new Set() };
+
+async function loadModels() {
+  const r = await fetch('/api/visibility').then(x => x.json());
+  if (r.error) { toast(t().failed(r.error), true); return; }
+  applyVisibility(r);
+}
+function applyVisibility(r) {
+  vm.models = r.models; vm.def = r.default; vm.managed = r.managed;
+  vm.saved = new Set(r.visible); vm.sel = new Set(r.visible);
+  renderModels();
+}
+function vmDiff() {
+  let n = 0;
+  for (const s of vm.sel) if (!vm.saved.has(s)) n++;
+  for (const s of vm.saved) if (!vm.sel.has(s)) n++;
+  return n;
+}
+function vmStatus() {
+  document.getElementById('vm-count').textContent = t().vmCount(vm.sel.size, vm.models.length);
+  const d = vmDiff();
+  document.getElementById('vm-dirty').textContent = d ? t().vmDirty(d) : '';
+  document.getElementById('vm-save').disabled = !vm.managed || d === 0 || vm.sel.size === 0;
+  document.getElementById('vm-reset').disabled = d === 0;
+}
+function renderModels() {
+  document.getElementById('vm-note').textContent = vm.managed ? t().vmNote : t().vmUnmanaged;
+  const q = document.getElementById('vm-q').value.trim().toLowerCase();
+  const box = document.getElementById('vm-box');
+  box.innerHTML = '';
+  const groups = {};
+  for (const m of vm.models) {
+    if (q && !`${m.provider} ${m.name} ${m.selector}`.toLowerCase().includes(q)) continue;
+    (groups[m.provider] ??= []).push(m);
+  }
+  for (const [p, list] of Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0]))) {
+    const wrap = document.createElement('div');
+    wrap.className = 'vm-prov' + (q || vm.open.has(p) ? ' open' : '');
+    const head = document.createElement('div');
+    head.className = 'vm-head';
+    const total = vm.models.filter(m => m.provider === p).length;
+    const on = vm.models.filter(m => m.provider === p && vm.sel.has(m.selector)).length;
+    const pbox = document.createElement('input');
+    pbox.type = 'checkbox'; pbox.disabled = !vm.managed;
+    pbox.checked = on === total; pbox.indeterminate = on > 0 && on < total;
+    pbox.onclick = e => e.stopPropagation();
+    pbox.onchange = () => {
+      for (const m of list) if (m.selector !== vm.def) pbox.checked ? vm.sel.add(m.selector) : vm.sel.delete(m.selector);
+      renderModels();
+    };
+    head.innerHTML = `<span class="caret">${wrap.classList.contains('open') ? '▾' : '▸'}</span>`;
+    head.appendChild(pbox);
+    const name = document.createElement('span'); name.className = 'pname'; name.textContent = p;
+    const cnt = document.createElement('span'); cnt.className = 'pcnt'; cnt.textContent = `${on} / ${total}`;
+    head.append(name, cnt);
+    head.onclick = () => { vm.open.has(p) ? vm.open.delete(p) : vm.open.add(p); renderModels(); };
+    const ul = document.createElement('div');
+    ul.className = 'vm-list';
+    for (const m of list) {
+      const row = document.createElement('label');
+      const isDef = m.selector === vm.def;
+      row.className = 'vm-item' + (isDef ? ' def' : '');
+      const cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.checked = vm.sel.has(m.selector) || isDef;
+      cb.disabled = !vm.managed || isDef;
+      cb.onchange = () => { cb.checked ? vm.sel.add(m.selector) : vm.sel.delete(m.selector); renderModels(); };
+      const mn = document.createElement('span'); mn.className = 'mname'; mn.textContent = m.name;
+      if (isDef) mn.dataset.tag = t().vmDefTag;
+      const sl = document.createElement('span'); sl.className = 'sel'; sl.textContent = m.selector;
+      row.append(cb, mn, sl);
+      ul.appendChild(row);
+    }
+    wrap.append(head, ul);
+    box.appendChild(wrap);
+  }
+  vmStatus();
+}
+document.getElementById('vm-q').oninput = () => renderModels();
+document.getElementById('vm-reset').onclick = () => { vm.sel = new Set(vm.saved); renderModels(); };
+document.getElementById('vm-save').onclick = async () => {
+  const r = await fetch('/api/visibility', {method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({visible: [...vm.sel]})}).then(x => x.json());
+  if (!r.ok) { toast(t().failed(r.error), true); return; }
+  applyVisibility(r);
+  toast(t().vmSaved(r.visible.length));
+  load(); // 刷新角色页下拉候选
+};
 
 applyStaticLang();
 load();

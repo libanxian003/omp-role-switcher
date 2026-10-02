@@ -8,6 +8,7 @@
 安全设计：不用 `omp config set`（会重写整文件并剥离注释）；按字节读写
 ~/.omp/agent/config.yml，只替换/插入目标行并沿用原行尾；每次写入前自动备份。
 """
+import fnmatch
 import json
 import re
 import shutil
@@ -200,6 +201,108 @@ def list_models():
     return keep
 
 
+# ---------- 模型显示（enabledModels） ----------
+
+ENABLED_HEAD = re.compile(r'^enabledModels:[ \t]*(\[\s*\])?[ \t]*(#.*)?(\r?\n)?$')
+LIST_ITEM = re.compile(r'^[ \t]+-[ \t]+(.*?)[ \t]*(\r?\n)?$')
+
+
+def enabled_block(lines):
+    """定位顶层 enabledModels 段，返回 (首行, 尾后行, 条目) 或 None；含 path 作用域条目时条目为 None。"""
+    for i, line in enumerate(lines):
+        m = ENABLED_HEAD.match(line)
+        if not m:
+            continue
+        if m.group(1):  # enabledModels: []
+            return i, i + 1, []
+        entries, j = [], i + 1
+        while j < len(lines):
+            ln = lines[j]
+            if not ln.strip():
+                break
+            if not ln[0].isspace():
+                break
+            item = LIST_ITEM.match(ln)
+            if item is None:
+                return i, None, None  # 嵌套/作用域结构，不托管
+            v, _ = split_comment(item.group(1))
+            if v.startswith(('{', 'path', 'paths')) or v.endswith(':'):
+                return i, None, None
+            if len(v) >= 2 and v[0] == v[-1] and v[0] in '"\'':
+                v = v[1:-1]
+            entries.append(v)
+            j += 1
+        return i, j, entries
+    return None
+
+
+def pattern_matches(pat, model):
+    p = pat.lower()
+    sel = model["selector"].lower()
+    if any(c in p for c in "*?["):
+        return fnmatch.fnmatchcase(sel, p) or fnmatch.fnmatchcase(sel.split('/', 1)[1], p)
+    return p == sel or p == sel.split('/', 1)[1]
+
+
+def visibility_state():
+    lines = CONFIG.read_bytes().decode('utf-8').splitlines(keepends=True)
+    blk = enabled_block(lines)
+    models = list_models()
+    patterns = blk[2] if blk else []
+    managed = not (blk and blk[2] is None)
+    if not patterns:  # 空名单 = 全部显示
+        visible = [m["selector"] for m in models]
+    else:
+        visible = [m["selector"] for m in models
+                   if any(pattern_matches(p, m) for p in patterns)]
+    return {"models": models, "visible": visible, "patterns": patterns or [],
+            "managed": managed, "default": parse_roles().get("default")}
+
+
+def set_visible(selected):
+    if not isinstance(selected, list) or not all(isinstance(s, str) for s in selected):
+        return "参数格式错误"
+    models = list_models()
+    by_sel = {m["selector"]: m for m in models}
+    chosen = {s for s in selected if s in by_sel}
+    if not chosen:
+        return "至少要保留一个可见模型（空名单在 omp 中等于全部显示）"
+    raw = CONFIG.read_bytes().decode('utf-8')
+    eol = '\r\n' if '\r\n' in raw else '\n'
+    lines = raw.splitlines(keepends=True)
+    blk = enabled_block(lines)
+    if blk and blk[2] is None:
+        return "config.yml 的 enabledModels 含 path 作用域等复杂结构，请手工编辑"
+    old = blk[2] if blk else []
+    # 当前匹配不到任何模型的条目（供应商离线等）原样保留，避免上线后被意外隐藏
+    dormant = [p for p in old if not any(pattern_matches(p, m) for m in models)]
+    providers = {}
+    for m in models:
+        providers.setdefault(m["provider"], []).append(m["selector"])
+    out = []
+    default = parse_roles().get("default")
+    if default and default in by_sel:  # 启动模型取名单首项：把 default 角色模型放第一位且保持可见
+        chosen.add(default)
+        out.append(default)
+    for prov in sorted(providers):
+        sels = providers[prov]
+        if all(s in chosen for s in sels):
+            out.append(f"{prov}/*")
+        else:
+            out.extend(s for s in sorted(sels) if s in chosen and s != default)
+    out.extend(p for p in dormant if p not in out)
+    block = [f"enabledModels:{eol}"] + [f"  - {json.dumps(p)}{eol}" for p in out]
+    if blk:
+        lines[blk[0]:blk[1]] = block
+    else:
+        if lines and not lines[-1].endswith('\n'):
+            lines[-1] += eol
+        lines.extend(block)
+    write_backup()
+    CONFIG.write_bytes(''.join(lines).encode('utf-8'))
+    return None
+
+
 def list_settings():
     out = run(["omp", "config", "list", "--json"])
     try:
@@ -250,11 +353,14 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, (HERE / "index.html").read_bytes(),
                        "text/html; charset=utf-8")
         elif path == "/api/state":
+            vis = visibility_state()
             self._send(200, json.dumps(
-                {"roles": parse_roles(), "models": list_models(),
-                 "config": str(CONFIG)}, ensure_ascii=False))
+                {"roles": parse_roles(), "models": vis["models"],
+                 "visible": vis["visible"], "config": str(CONFIG)}, ensure_ascii=False))
         elif path == "/api/settings":
             self._send(200, json.dumps(list_settings(), ensure_ascii=False))
+        elif path == "/api/visibility":
+            self._send(200, json.dumps(visibility_state(), ensure_ascii=False))
         else:
             self._send(404, "{}")
 
@@ -278,6 +384,13 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(400, json.dumps({"error": err}, ensure_ascii=False))
             else:
                 self._send(200, json.dumps({"ok": True}, ensure_ascii=False))
+        elif self.path == "/api/visibility":
+            err = set_visible(payload.get("visible"))
+            if err:
+                self._send(400, json.dumps({"error": err}, ensure_ascii=False))
+            else:
+                self._send(200, json.dumps({"ok": True, **visibility_state()},
+                                           ensure_ascii=False))
         else:
             self._send(404, "{}")
 
