@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""omp 设置中心 / omp Settings Center Web 界面（原模型角色切换器）。
+"""omp 设置中心 / omp Settings Web（原 omp Settings Center，更早是模型角色切换器）。
 
 - 模型角色：两级分组选择器，点击切换 modelRoles。
 - 全部设置：读取 `omp config list --json` 全量目录（键/值/类型/描述），
@@ -112,7 +112,7 @@ def coerce_value(typ, s):
 
 def write_backup():
     backup = CONFIG.with_name(
-        f"config.yml.bak-settings-center-{time.strftime('%Y%m%d-%H%M%S')}")
+        f"config.yml.bak-settings-web-{time.strftime('%Y%m%d-%H%M%S')}")
     shutil.copy2(CONFIG, backup)
     return backup
 

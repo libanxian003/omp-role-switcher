@@ -1,4 +1,4 @@
-# omp 设置中心 / omp Settings Web UI
+# omp 设置中心 / omp Settings Web (omp-settings-web)
 
 A tiny local web UI for [oh-my-pi (omp)](https://omp.sh): switch model roles and edit all settings in Chinese, by clicking. The settings page organizes 500+ keys into ~35 sidebar categories, each entry with a curated Chinese name & description. A **中文 / EN** toggle in the header switches the entire UI to English — item names, descriptions, sidebar categories, buttons and messages (defaults to Chinese; the choice persists in localStorage). See the [English screenshot](docs/screenshot-settings-en.png).
 
@@ -49,7 +49,7 @@ Open [http://127.0.0.1:8788](http://127.0.0.1:8788), click **切换** on a role,
 
 1. **Targeted line edit** — reads `~/.omp/agent/config.yml` and regex-replaces only the target key's line; keys not yet present are inserted at the correct nesting level.
 2. **Byte-precise I/O** — `read_bytes`/`write_bytes` with original line-ending detection (LF vs CRLF), so everything except the edited/inserted lines stays byte-identical.
-3. **Automatic backup** — every write first copies the config to `config.yml.bak-settings-center-<timestamp>`.
+3. **Automatic backup** — every write first copies the config to `config.yml.bak-settings-web-<timestamp>`.
 4. **Type validation** — values are coerced per the type reported by `omp config list` (boolean/number/string/enum); arrays and nested blocks are read-only.
 
 Server binds to `127.0.0.1` only. Value/role inputs are validated against a whitelist regex before touching the file.

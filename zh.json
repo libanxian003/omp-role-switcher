@@ -2676,6 +2676,10 @@
     "name": "批量派发模式",
     "desc": "task 工具采用批量形态：一次调用携带 {context, tasks[]}，每项一个子代理，共享 context 前置注入每个任务。async.enabled 时各自后台跑，否则阻塞等合并结果。关闭则退回单次单代理的扁平模式。默认 true。"
   },
+  "task.completionProbeMs": {
+    "name": "子代理完成度探测间隔",
+    "desc": "每隔多少毫秒，通过一次缓存的旁路请求（类似 /btw）向仍在运行的子代理询问任务完成度估计，结果显示在 wait 与 task 视图的子代理旁。默认 120000（2 分钟）。0=关闭。调小→更频繁汇报进度但多耗 token；调大→更省但状态滞后。"
+  },
   "task.disabledAgents": {
     "name": "禁用代理名单",
     "desc_en": "Array of built-in/extension agents to disable — agents on the list can no longer be dispatched by the task tool; use it to block expensive or error-prone specialist agents. Empty by default = all available.",
