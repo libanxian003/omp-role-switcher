@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>omp 模型角色切换器</title>
+<style>
+  :root { color-scheme: dark; }
+  body { font-family: "Segoe UI", system-ui, sans-serif; background: #16181d;
+         color: #d7dae0; margin: 0 auto; padding: 24px; max-width: 640px; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  .sub { color: #8b93a1; font-size: 12px; margin-bottom: 20px; word-break: break-all; }
+  .role { display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+          border: 1px solid #2a2e37; border-radius: 8px; margin-bottom: 8px; background: #1c1f26; }
+  .role .name { width: 110px; font-weight: 600; }
+  .role .name small { display: block; font-weight: 400; color: #8b93a1; font-size: 11px; }
+  .role .value { flex: 1; font-family: Consolas, monospace; font-size: 13px; color: #9fd0ff; }
+  select { background: #232732; color: #d7dae0; border: 1px solid #3a4050;
+           border-radius: 6px; padding: 6px 8px; font-size: 13px; display: none;
+           max-width: 360px; }
+  select.group { min-width: 180px; max-width: 220px; }
+  .role.editing { flex-wrap: wrap; }
+  button { background: #2d6cdf; color: #fff; border: 0; border-radius: 6px;
+           padding: 6px 14px; cursor: pointer; font-size: 13px; }
+  button.ghost { background: transparent; border: 1px solid #3a4050; color: #8b93a1; }
+  button:hover { filter: brightness(1.15); }
+  .editing select { display: block; }
+  #toast { position: fixed; bottom: 20px; right: 20px; background: #234; padding: 10px 16px;
+           border-radius: 8px; display: none; font-size: 13px; border: 1px solid #3a4050; }
+  #err { color: #ff8080; }
+</style>
+</head>
+<body>
+<h1>omp 模型角色切换器</h1>
+<div class="sub" id="cfg"></div>
+<div id="roles"></div>
+<div id="toast"></div>
+<script>
+let models = [];
+const roleComment = {"default":"主会话模型","smol":"轻量快速任务","slow":"深度推理",
+  "plan":"规划模式","vision":"图像理解","task":"子代理","commit":"提交信息生成",
+  "tiny":"极小分类/标题","web":"网络搜索","advisor":"顾问评审"};
+
+async function load() {
+  const r = await fetch('/api/state').then(x => x.json());
+  models = r.models;
+  document.getElementById('cfg').textContent = r.config + ' · 共 ' + r.models.length + ' 个可用模型';
+  const box = document.getElementById('roles');
+  box.innerHTML = '';
+  for (const [role, value] of Object.entries(r.roles)) {
+    box.appendChild(roleRow(role, value));
+  }
+}
+
+function roleRow(role, value) {
+  const div = document.createElement('div');
+  div.className = 'role';
+  // 第一级：按供应商分组
+  const groups = {};
+  for (const m of models) (groups[m.provider] ??= []).push(m);
+  const gsel = document.createElement('select');
+  gsel.className = 'group';
+  for (const [p, list] of Object.entries(groups).sort((a,b)=>a[0].localeCompare(b[0]))) {
+    const o = document.createElement('option');
+    o.value = p;
+    o.textContent = `${p} (${list.length})`;
+    gsel.appendChild(o);
+  }
+  // 当前值可能是别名/@role/带后缀，目录里没有则归入“当前”分组
+  const inCatalog = models.some(m => m.selector === value);
+  if (!inCatalog) {
+    const o = document.createElement('option');
+    o.value = '__current__';
+    o.textContent = `(当前) ${value}`;
+    gsel.prepend(o);
+  }
+  // 第二级：组内模型
+  const msel = document.createElement('select');
+  function fillModels(group) {
+    msel.innerHTML = '';
+    const list = group === '__current__' ? [] : groups[group] || [];
+    for (const m of list) {
+      const o = document.createElement('option');
+      o.value = m.selector;
+      o.textContent = m.name + '  (' + m.selector + ')';
+      msel.appendChild(o);
+    }
+    if (group === '__current__') {
+      const o = document.createElement('option');
+      o.value = value; o.textContent = value; o.selected = true;
+      msel.appendChild(o);
+    }
+  }
+  gsel.onchange = () => fillModels(gsel.value);
+  // 初始分组定位到当前值所在供应商
+  gsel.value = inCatalog ? (models.find(m => m.selector === value)?.provider ?? Object.keys(groups)[0])
+                         : '__current__';
+  fillModels(gsel.value);
+  if (inCatalog) msel.value = value;
+  div.innerHTML = `<div class="name">${role}<small>${roleComment[role]||''}</small></div>
+                   <div class="value"></div>`;
+  div.querySelector('.value').textContent = value;
+  const edit = document.createElement('button');
+  edit.textContent = '切换';
+  edit.onclick = () => {
+    div.classList.add('editing');
+    div.append(gsel, msel);
+    edit.style.display = 'none';
+    const ok = document.createElement('button'); ok.textContent = '保存';
+    const no = document.createElement('button'); no.textContent = '取消'; no.className = 'ghost';
+    ok.onclick = async () => {
+      const r = await fetch('/api/set', {method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({role, value: msel.value})}).then(x => x.json());
+      toast(r.ok ? `${role} → ${msel.value}（已备份 config.yml）` : ('失败: ' + r.error));
+      load();
+    };
+    no.onclick = () => load();
+    div.append(ok, no);
+  };
+  div.appendChild(edit);
+  return div;
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 4000);
+}
+load();
+</script>
+</body>
+</html>
