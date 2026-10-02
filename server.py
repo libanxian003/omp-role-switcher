@@ -230,7 +230,8 @@ def list_settings():
             "editable": typ in EDITABLE_TYPES,
         })
     items.sort(key=lambda x: (x["key"].split('.')[0], x["key"]))
-    return {"items": items, "groups": groups, "groupmap": zh.get("__groupmap", {})}
+    return {"items": items, "groups": groups, "groupmap": zh.get("__groupmap", {}),
+            "groups_en": zh.get("__groups_en", {})}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -243,14 +244,15 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
     def do_GET(self):
-        if self.path in ("/", "/index.html"):
+        path = self.path.split('?', 1)[0]  # 允许 /?v=... 查询串（缓存穿透），路由只看路径
+        if path in ("/", "/index.html"):
             self._send(200, (HERE / "index.html").read_bytes(),
                        "text/html; charset=utf-8")
-        elif self.path == "/api/state":
+        elif path == "/api/state":
             self._send(200, json.dumps(
                 {"roles": parse_roles(), "models": list_models(),
                  "config": str(CONFIG)}, ensure_ascii=False))
-        elif self.path == "/api/settings":
+        elif path == "/api/settings":
             self._send(200, json.dumps(list_settings(), ensure_ascii=False))
         else:
             self._send(404, "{}")

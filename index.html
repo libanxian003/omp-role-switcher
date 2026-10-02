@@ -9,6 +9,13 @@
          color: #d7dae0; margin: 0 auto; padding: 20px; max-width: 860px; }
   h1 { font-size: 18px; margin: 0 0 4px; }
   .sub { color: #8b93a1; font-size: 12px; margin-bottom: 14px; word-break: break-all; }
+  .hdr { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .lang-switch { display: flex; flex: none; }
+  .lang-switch button { background: #232732; border: 1px solid #3a4050; color: #8b93a1;
+                        border-radius: 0; padding: 4px 12px; font-size: 12px; }
+  .lang-switch button:first-child { border-radius: 6px 0 0 6px; }
+  .lang-switch button:last-child { border-radius: 0 6px 6px 0; border-left: 0; }
+  .lang-switch button.active { background: #2d6cdf; border-color: #2d6cdf; color: #fff; }
   .tabs { display: flex; gap: 8px; margin-bottom: 14px; }
   .tabs button { background: #232732; border: 1px solid #3a4050; color: #8b93a1;
                  border-radius: 8px; padding: 7px 18px; cursor: pointer; font-size: 14px; }
@@ -81,7 +88,12 @@
 </style>
 </head>
 <body>
-<h1>omp 设置中心</h1>
+<div class="hdr">
+  <h1 id="h1">omp 设置中心</h1>
+  <div class="lang-switch" title="切换界面语言 / Switch UI language">
+    <button id="lang-zh" class="active">中文</button><button id="lang-en">EN</button>
+  </div>
+</div>
 <div class="sub" id="cfg"></div>
 <div class="tabs">
   <button id="tab-roles" class="active">模型角色</button>
@@ -91,7 +103,7 @@
 <div id="view-settings" style="display:none">
   <div class="toolbar">
     <input type="text" id="q" placeholder="搜索：键名 / 中文名 / 描述…">
-    <label><input type="checkbox" id="onlyCustom"> 只看已自定义</label>
+    <label><input type="checkbox" id="onlyCustom"><span id="only-custom-text">只看已自定义</span></label>
     <span class="count" id="count"></span>
   </div>
   <div class="settings-layout">
@@ -102,9 +114,106 @@
 <div id="toast"></div>
 <script>
 let models = [], settingsCache = [];
-const roleComment = {"default":"主会话模型","smol":"轻量快速任务","slow":"深度推理",
-  "plan":"规划模式","vision":"图像理解","task":"子代理","commit":"提交信息生成",
-  "tiny":"极小分类/标题","web":"网络搜索","advisor":"顾问评审"};
+
+/* ---------- i18n：中英文切换 ---------- */
+const MACRO_GROUP_EN = {"AST 工具":"AST Tools","Git 与提交":"Git & Commits","会话与交互":"Session & Interaction",
+  "供应商与认证":"Providers & Auth","协作与分享":"Collaboration & Sharing","安全与遥测":"Security & Telemetry",
+  "开发与调试":"Development & Debugging","技能与自动学习":"Skills & Auto Learning","检索与读取":"Retrieval & Reading",
+  "界面与输入":"UI & Input","系统与更新":"System & Update","记忆系统":"Memory Systems","语音":"Voice"};
+const T = {
+  zh: {
+    title: 'omp 设置中心',
+    tabRoles: '模型角色', tabSettings: '全部设置',
+    searchPh: '搜索：键名 / 中文名 / 描述…',
+    onlyCustom: '只看已自定义',
+    modelsAvail: n => `共 ${n} 个可用模型`,
+    roleComment: {"default":"主会话模型","smol":"轻量快速任务","slow":"深度推理",
+      "plan":"规划模式","vision":"图像理解","task":"子代理","commit":"提交信息生成",
+      "tiny":"极小分类/标题","web":"网络搜索","advisor":"顾问评审"},
+    switchBtn: '切换', saveBtn: '保存', cancelBtn: '取消',
+    currentOpt: v => `(当前) ${v}`,
+    currentSuffix: v => `${v}（当前）`,
+    boolLabel: v => v === 'true' ? 'true（开）' : 'false（关）',
+    roleSaved: (role, v) => `${role} → ${v}（已备份 config.yml，即时生效）`,
+    keySaved: (k, v) => `${k} → ${v}（已备份，写后 omp 即时生效）`,
+    failed: e => `失败: ${e}`,
+    badgeCustom: '已自定义', badgeDefault: '默认值', badgeRO: '只读（数组/嵌套）',
+    noneVal: '(无)',
+    navTitle: (g, n) => `${g}（${n} 项）`,
+    grpAll: n => `${n} 项`,
+    grpHit: (a, b) => `${a} / ${b} 项命中`,
+    emptyHint: '该分类下无匹配设置项',
+    count: (a, b) => `${a} / ${b} 项`,
+    typePrefix: '类型',
+    typeName: ty => ({boolean:'布尔', number:'数字', integer:'数字', string:'字符串',
+                      enum:'枚举', array:'数组', record:'键值表'}[ty] ?? ty),
+  },
+  en: {
+    title: 'omp Settings Center',
+    tabRoles: 'Model Roles', tabSettings: 'All Settings',
+    searchPh: 'Search: key / name / description…',
+    onlyCustom: 'Only customized',
+    modelsAvail: n => `${n} models available`,
+    roleComment: {"default":"Main session model","smol":"Fast lightweight tasks","slow":"Deep reasoning",
+      "plan":"Plan mode","vision":"Image understanding","task":"Subagent","commit":"Commit message",
+      "tiny":"Tiny classification/titles","web":"Web search","advisor":"Advisor review"},
+    switchBtn: 'Switch', saveBtn: 'Save', cancelBtn: 'Cancel',
+    currentOpt: v => `(current) ${v}`,
+    currentSuffix: v => `${v} (current)`,
+    boolLabel: v => v === 'true' ? 'true (on)' : 'false (off)',
+    roleSaved: (role, v) => `${role} → ${v} (config.yml backed up, applies immediately)`,
+    keySaved: (k, v) => `${k} → ${v} (backed up; omp picks it up immediately)`,
+    failed: e => `Failed: ${e}`,
+    badgeCustom: 'Customized', badgeDefault: 'Default', badgeRO: 'Read-only (array/nested)',
+    noneVal: '(none)',
+    navTitle: (g, n) => `${g} (${n} items)`,
+    grpAll: n => `${n} items`,
+    grpHit: (a, b) => `${a} / ${b} matched`,
+    emptyHint: 'No matching settings in this category',
+    count: (a, b) => `${a} / ${b} items`,
+    typePrefix: 'Type',
+    typeName: ty => ty,
+  },
+};
+let LANG = localStorage.getItem('omp-ui-lang') === 'en' ? 'en' : 'zh';
+let zhGroupEn = {}; // 中文大类名 → 英文名（由 __groups × __groups_en 配对生成）
+const t = () => T[LANG];
+function groupName(g) {
+  return LANG === 'en' ? (MACRO_GROUP_EN[g] || zhGroupEn[g] || g) : g;
+}
+function enName(key) { // 键名末段 camelCase 拆成可读英文
+  const last = key.split('.').pop().replace(/_/g, ' ');
+  const spaced = last.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+function buildGroupEn(groupsZh, groupsEn) {
+  zhGroupEn = {};
+  for (const id in groupsZh) if (groupsEn[id]) zhGroupEn[groupsZh[id]] = groupsEn[id];
+}
+function applyStaticLang() {
+  document.documentElement.lang = LANG === 'zh' ? 'zh' : 'en';
+  document.title = t().title;
+  document.getElementById('h1').textContent = t().title;
+  document.getElementById('tab-roles').textContent = t().tabRoles;
+  document.getElementById('tab-settings').textContent = t().tabSettings;
+  document.getElementById('q').placeholder = t().searchPh;
+  document.getElementById('only-custom-text').textContent = t().onlyCustom;
+  document.getElementById('lang-zh').classList.toggle('active', LANG === 'zh');
+  document.getElementById('lang-en').classList.toggle('active', LANG === 'en');
+}
+function rerenderDynamic() { // 不整页重载：重渲染两个页签的动态内容
+  load();
+  if (settingsCache.length) { renderNav(hitsByGroup()); renderGroup(); }
+}
+function setLang(lang) {
+  if (LANG === lang) return;
+  LANG = lang;
+  localStorage.setItem('omp-ui-lang', lang);
+  applyStaticLang();
+  rerenderDynamic();
+}
+document.getElementById('lang-zh').onclick = () => setLang('zh');
+document.getElementById('lang-en').onclick = () => setLang('en');
 
 /* ---------- 通用 ---------- */
 function toast(msg, bad) {
@@ -127,7 +236,7 @@ function switchTab(which) {
 async function load() {
   const r = await fetch('/api/state').then(x => x.json());
   models = r.models;
-  document.getElementById('cfg').textContent = r.config + ' · 共 ' + r.models.length + ' 个可用模型';
+  document.getElementById('cfg').textContent = r.config + ' · ' + t().modelsAvail(r.models.length);
   const box = document.getElementById('view-roles');
   box.innerHTML = '';
   for (const [role, value] of Object.entries(r.roles)) {
@@ -152,7 +261,7 @@ function roleRow(role, value) {
   if (!inCatalog) {
     const o = document.createElement('option');
     o.value = '__current__';
-    o.textContent = `(当前) ${value}`;
+    o.textContent = t().currentOpt(value);
     gsel.prepend(o);
   }
   const msel = document.createElement('select');
@@ -176,22 +285,22 @@ function roleRow(role, value) {
                          : '__current__';
   fillModels(gsel.value);
   if (inCatalog) msel.value = value;
-  div.innerHTML = `<div class="name">${role}<small>${roleComment[role]||''}</small></div>
+  div.innerHTML = `<div class="name">${role}<small>${t().roleComment[role]||''}</small></div>
                    <div class="value"></div>`;
   div.querySelector('.value').textContent = value;
   const edit = document.createElement('button');
-  edit.textContent = '切换';
+  edit.textContent = t().switchBtn;
   edit.onclick = () => {
     div.classList.add('editing');
     div.append(gsel, msel);
     edit.style.display = 'none';
-    const ok = document.createElement('button'); ok.textContent = '保存';
-    const no = document.createElement('button'); no.textContent = '取消'; no.className = 'ghost';
+    const ok = document.createElement('button'); ok.textContent = t().saveBtn;
+    const no = document.createElement('button'); no.textContent = t().cancelBtn; no.className = 'ghost';
     ok.onclick = async () => {
       const r = await fetch('/api/set', {method:'POST',
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({role, value: msel.value})}).then(x => x.json());
-      toast(r.ok ? `${role} → ${msel.value}（已备份 config.yml，即时生效）` : ('失败: ' + r.error), !r.ok);
+      toast(r.ok ? t().roleSaved(role, msel.value) : t().failed(r.error), !r.ok);
       load();
     };
     no.onclick = () => load();
@@ -266,6 +375,7 @@ async function loadSettings() {
   const r = await fetch('/api/settings').then(x => x.json());
   if (r.error) { toast(r.error, true); return; }
   groupMap = r.groupmap || {};
+  buildGroupEn(r.groups || {}, r.groups_en || {});
   settingsCache = r.items;
   for (const it of settingsCache) it.group = groupNameFor(it.key, it.group);
   applyFilter(false);
@@ -281,9 +391,9 @@ function renderNav(hits) {
     const hit = hits.get(g) || 0;
     const d = document.createElement('div');
     d.className = 'nav-item' + (g === curGroup ? ' active' : '') + (filtering && !hit ? ' dim' : '');
-    d.title = `${g}（${total} 项）`;
+    d.title = t().navTitle(groupName(g), total);
     const nm = document.createElement('span');
-    nm.className = 'gname'; nm.textContent = g;
+    nm.className = 'gname'; nm.textContent = groupName(g);
     const c = document.createElement('span');
     c.className = 'cnt'; c.textContent = filtering ? hit : total;
     d.append(nm, c);
@@ -302,17 +412,17 @@ function renderGroup() {
   const h = document.createElement('div');
   h.className = 'grp';
   h.innerHTML = `<span class="grp-name"></span><small></small>`;
-  h.querySelector('.grp-name').textContent = curGroup;
-  h.querySelector('small').textContent = filtering ? `${rows.length} / ${total} 项命中` : `${total} 项`;
+  h.querySelector('.grp-name').textContent = groupName(curGroup);
+  h.querySelector('small').textContent = filtering ? t().grpHit(rows.length, total) : t().grpAll(total);
   box.appendChild(h);
   for (const it of rows) box.appendChild(settingRow(it));
   if (!rows.length) {
     const e = document.createElement('div');
     e.className = 'empty-hint';
-    e.textContent = '该分类下无匹配设置项';
+    e.textContent = t().emptyHint;
     box.appendChild(e);
   }
-  document.getElementById('count').textContent = `${filtered().length} / ${settingsCache.length} 项`;
+  document.getElementById('count').textContent = t().count(filtered().length, settingsCache.length);
 }
 
 function settingRow(it) {
@@ -320,15 +430,16 @@ function settingRow(it) {
   div.className = 'row';
   const head = document.createElement('div');
   head.className = 'head';
+  const nameZh = it.name || it.key.split('.').pop();
   const badge = document.createElement('span');
-  if (it.custom) { badge.className = 'badge custom'; badge.textContent = '已自定义'; }
-  else { badge.className = 'badge default'; badge.textContent = '默认值'; }
+  if (it.custom) { badge.className = 'badge custom'; badge.textContent = t().badgeCustom; }
+  else { badge.className = 'badge default'; badge.textContent = t().badgeDefault; }
   if (!it.editable) {
     badge.className = 'badge ro';
-    badge.textContent = '只读（数组/嵌套）';
+    badge.textContent = t().badgeRO;
   }
   head.innerHTML = `<span class="zhname"></span><span class="key"></span>`;
-  head.querySelector('.zhname').textContent = it.name || it.key.split('.').pop();
+  head.querySelector('.zhname').textContent = LANG === 'zh' ? nameZh : enName(it.key);
   head.querySelector('.key').textContent = it.key;
   head.appendChild(badge);
 
@@ -336,11 +447,11 @@ function settingRow(it) {
   const cur = it.value === null || it.value === undefined ? '' : String(it.value);
   if (!it.editable) {
     input = document.createElement('input');
-    input.type = 'text'; input.disabled = true; input.value =
-      it.value === undefined ? '(无)' : JSON.stringify(it.value);
+    input.type = 'text'; input.disabled = true;
+    input.value = it.value === undefined ? t().noneVal : JSON.stringify(it.value);
   } else if (it.type === 'boolean') {
     input = document.createElement('select');
-    for (const [v, label] of [['true','true（开）'], ['false','false（关）']]) {
+    for (const [v, label] of [['true', t().boolLabel('true')], ['false', t().boolLabel('false')]]) {
       const o = document.createElement('option');
       o.value = v; o.textContent = label;
       if (cur === v) o.selected = true;
@@ -356,7 +467,7 @@ function settingRow(it) {
     }
     if (![...input.options].some(o => o.value === cur)) {
       const o = document.createElement('option');
-      o.value = cur; o.textContent = cur + '（当前）'; o.selected = true;
+      o.value = cur; o.textContent = t().currentSuffix(cur); o.selected = true;
       input.prepend(o);
     }
   } else {
@@ -367,14 +478,14 @@ function settingRow(it) {
   head.appendChild(input);
 
   const save = document.createElement('button');
-  save.className = 'save'; save.textContent = '保存';
+  save.className = 'save'; save.textContent = t().saveBtn;
   if (!it.editable) save.disabled = true;
   save.onclick = async () => {
     const r = await fetch('/api/set-key', {method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({key: it.key, value: input.value})}).then(x => x.json());
-    if (r.ok) toast(`${it.key} → ${input.value}（已备份，写后 omp 即时生效）`);
-    else { toast('失败: ' + r.error, true); return; }
+    if (r.ok) toast(t().keySaved(it.key, input.value));
+    else { toast(t().failed(r.error), true); return; }
     const y = window.scrollY;
     await loadSettings();
     window.scrollTo(window.scrollX, y); // 保持滚动位置
@@ -384,16 +495,17 @@ function settingRow(it) {
 
   const desc = document.createElement('div');
   desc.className = 'desc';
-  const TYPE_ZH = {boolean:'布尔', number:'数字', integer:'数字', string:'字符串',
-                   enum:'枚举', array:'数组', record:'键值表'};
-  const bits = [it.zh || it.key.split('.').pop()];
-  bits.push(`类型: ${TYPE_ZH[it.type] ?? it.type}`);
+  const bits = LANG === 'zh' ? [it.zh || it.key.split('.').pop()]
+                             : [it.desc || it.zh || enName(it.key)]; // 英文原文，上游为空回退中文
+  bits.push(`${t().typePrefix}: ${t().typeName(it.type)}`);
   desc.textContent = bits.join(' · ');
-  if (it.desc) desc.title = it.desc; // 英文原文悬停可见
+  desc.title = LANG === 'zh' ? (it.desc || '')          // 悬停见英文原文
+                             : [nameZh, it.zh].filter(Boolean).join('\n'); // 悬停见中文
   div.appendChild(desc);
   return div;
 }
 
+applyStaticLang();
 load();
 </script>
 </body>

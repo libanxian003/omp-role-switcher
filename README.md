@@ -1,13 +1,17 @@
 # omp 设置中心 / omp Settings Web UI
 
-A tiny local web UI for [oh-my-pi (omp)](https://omp.sh): switch model roles and edit all settings in Chinese, by clicking. The settings page organizes 500+ keys into ~35 sidebar categories, each entry with a curated Chinese name & description.
+A tiny local web UI for [oh-my-pi (omp)](https://omp.sh): switch model roles and edit all settings in Chinese, by clicking. The settings page organizes 500+ keys into ~35 sidebar categories, each entry with a curated Chinese name & description. A **中文 / EN** toggle in the header switches the entire UI to English — item names, descriptions, sidebar categories, buttons and messages (defaults to Chinese; the choice persists in localStorage). See the [English screenshot](docs/screenshot-settings-en.png).
 
-一个本地 Web 小程序：浏览器里点击切换 omp 的 `modelRoles`、修改全部设置（中文界面），替代 TUI 内 `/model` 与手编 `config.yml`。改动写入后 omp 即时生效，无需重启会话。设置页把 500+ 项按 ~35 个大类做侧栏导航，逐项附中文名与中文说明。
+一个本地 Web 小程序：浏览器里点击切换 omp 的 `modelRoles`、修改全部设置（中文界面），替代 TUI 内 `/model` 与手编 `config.yml`。改动写入后 omp 即时生效，无需重启会话。设置页把 500+ 项按 ~35 个大类做侧栏导航，逐项附中文名与中文说明。页头「中文 / EN」可一键把整个界面在中英文间切换（项名/说明/大类/按钮全量翻译，默认中文，选择存 localStorage 刷新保持），英文界面见 [截图](docs/screenshot-settings-en.png)。
 
 | 模型角色 / Roles | 全部设置 / Settings |
 |---|---|
 | ![roles](docs/screenshot-roles.png) | ![settings](docs/screenshot-settings-sidebar.png) |
 | ![roles editing](docs/screenshot-roles-editing.png) | ![settings search](docs/screenshot-settings-search.png) |
+
+设置页英文模式 / Settings page in English:
+
+![settings in English](docs/screenshot-settings-en.png)
 
 ## Features / 功能
 
