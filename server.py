@@ -224,6 +224,7 @@ def list_settings():
             "desc": meta.get('description', ''),
             "name": info.get('name'),
             "zh": info.get('desc'),
+            "desc_en": info.get('desc_en'),
             "options": info.get('options'),
             "group": groups.get(key.split('.')[0], key.split('.')[0]),
             "custom": key in idx,

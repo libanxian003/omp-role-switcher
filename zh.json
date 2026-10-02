@@ -486,18 +486,22 @@
   },
   "async.maxJobs": {
     "name": "后台任务数上限",
+    "desc_en": "Cap on concurrently running background/async tasks, default 100; new tasks wait for a free slot beyond it, stopping the model from sprawling unbounded background processes that would drag the machine down. Rarely needs changing.",
     "desc": "同时运行的后台/异步任务数量上限，默认 100。超出上限时新任务需等有空位。防止模型无节制地铺开大量后台进程拖垮机器；一般无需修改。"
   },
   "auth.accountPolicies": {
     "name": "账户策略列表",
+    "desc_en": "Array of account policies for authentication, empty by default (inferred, undocumented upstream); understood from the name and the auth family as per-account usage policies such as routing or limit preferences — single-account users need not set it.",
     "desc": "认证相关的账户策略数组，默认空数组。（推测，官方未说明）按键名与所属 auth 家族理解：用于为不同账户配置使用策略（如路由/限流偏好）；普通单账户用户无需配置。"
   },
   "auth.broker.token": {
     "name": "认证代理令牌",
+    "desc_en": "Credential token for the auth broker service (env OMP_AUTH_BROKER_TOKEN), used when authorization is delegated through a broker; credential-type setting, redacted in `omp config list` output. Leave empty when no broker is used.",
     "desc": "auth broker（认证代理/中转服务）的凭证令牌，对应环境变量 OMP_AUTH_BROKER_TOKEN。用于通过代理服务完成委托授权的场景；属于凭据类设置，`omp config list` 输出中会被脱敏。未使用 broker 时留空即可。"
   },
   "auth.broker.url": {
     "name": "认证代理地址",
+    "desc_en": "URL of the auth broker service (env OMP_AUTH_BROKER_URL); together with auth.broker.token it delegates OAuth-style authorization flows to the broker, useful when tokens for subscription accounts are managed centrally. (inferred, undocumented upstream)",
     "desc": "auth broker 服务的 URL，对应环境变量 OMP_AUTH_BROKER_URL。（推测，官方未说明）配合 auth.broker.token 使用：把 OAuth 等授权流程交给该代理完成，适合订阅制账号统一管理令牌的场景。"
   },
   "autoResume": {
@@ -518,6 +522,7 @@
   },
   "autolearn.minToolCalls": {
     "name": "学习触发最少工具数",
+    "desc_en": "Minimum tool-call count for a session to trigger auto learning, default 5 (this machine: 20): trivial sessions below it are skipped instead of spending tokens on experience capture; raise it to learn only from substantial sessions.",
     "desc": "触发自动学习的会话工具调用次数下限，默认 5（本机已改为 20）：低于该次数的琐碎会话不值得花 token 做经验捕获，直接跳过。调大可只在真正有干货的会话里学习。"
   },
   "bash.allowCompoundCommands": {
@@ -530,6 +535,7 @@
   },
   "bash.autoBackground.thresholdMs": {
     "name": "转后台时间阈值",
+    "desc_en": "A bash command running longer than this many milliseconds (default 60000 = 60 seconds) is moved to background automatically; smaller frees the model earlier but output arrives later, larger runs more commands synchronously with immediate results.",
     "desc": "bash 命令运行超过该毫秒数（默认 60000，即 60 秒）自动转后台。调小让模型更早解放，但命令输出会稍后才到；调大则更多命令同步执行、结果立即可见。"
   },
   "bash.direnv": {
@@ -558,6 +564,7 @@
   },
   "bashInterceptor.patterns": {
     "name": "拦截规则集",
+    "desc_en": "Interception rules for bashInterceptor, each with pattern (regex), tool (the tool to use instead) and message (hint shown to the model). Defaults: cat/head/tail to read, grep/rg to grep, find/fd to glob, sed -i/perl -i/awk in-place to edit, echo redirection to write, nohup and dev/watch-style commands to named bash services.",
     "desc": "bashInterceptor 的拦截规则数组，每项含 pattern（正则）、tool（应改用的工具）、message（给模型看的提示）。默认规则：cat/head/tail→read、grep/rg→grep、find/fd→glob、sed -i/perl -i/awk inplace→edit、echo 重定向→write、nohup 与 dev/watch 类命令→带 name 的 bash 服务。"
   },
   "branchSummary.enabled": {
@@ -566,6 +573,7 @@
   },
   "branchSummary.reserveTokens": {
     "name": "分支摘要保留额度",
+    "desc_en": "Context tokens reserved for generating branch summaries, default 16384 (inferred, undocumented upstream); a retention mechanism like compaction.reserveTokens that guarantees room for summary generation; rarely needs changing.",
     "desc": "为生成分支摘要预留的上下文 token 额度，默认 16384。（推测，官方未说明）类似 compaction.reserveTokens 的保留机制，保证摘要生成有足够空间；一般无需修改。"
   },
   "browser.cdpUrl": {
@@ -697,26 +705,32 @@
   },
   "commit.cacheEnabled": {
     "name": "提交信息缓存",
+    "desc_en": "Caches LLM responses for /commit messages in local llm-cache storage; identical or similar diffs reuse the previous result, saving tokens and time. On by default.",
     "desc": "缓存 /commit 生成提交信息的 LLM 响应（本地 llm-cache 存储）。相同/相似的 diff 直接复用上次结果，省 token 且更快。默认开启。"
   },
   "commit.cacheTtlDays": {
     "name": "提交缓存有效期",
+    "desc_en": "Retention days for the commit-message cache, default 14; expired entries are no longer reused. Shorten it when your diff style changes a lot, lengthen it for a higher hit rate.",
     "desc": "提交信息缓存的保留天数，默认 14，过期条目不再复用。仓库 diff 风格变化大时可调短，追求命中率可调长。"
   },
   "commit.changelogMaxDiffChars": {
     "name": "changelog 上限",
+    "desc_en": "Maximum diff characters fed to the model when generating a changelog, default 120000; very large release diffs are truncated so the call cannot explode; larger covers more changes with more cost and timeout risk.",
     "desc": "生成 changelog 时喂给模型的 diff 最大字符数，默认 120000。超大发布 diff 会被截断以保证调用不爆；调大可覆盖更全的变更但增加费用与超时风险。"
   },
   "commit.mapBatchTokenBudget": {
     "name": "map 分批预算",
+    "desc_en": "Token budget per batch in the map stage of map-reduce commit-message generation, default 16000; bigger batches mean fewer but pricier calls — tune the chunking of huge diffs together with mapReduceThreshold.",
     "desc": "map-reduce 生成提交信息时，map 阶段每一批的 token 预算，默认 16000。批越大调用越少、单批越贵；配合 mapReduceThreshold 调节超大 diff 的分块粒度。"
   },
   "commit.mapReduceEnabled": {
     "name": "map-reduce 生成",
+    "desc_en": "For very large diffs, generate commit messages via map-reduce: summarize chunks in parallel first, then fold them into the final message, so one call never has to swallow the whole diff. On by default.",
     "desc": "超大 diff 的提交信息改用 map-reduce 方式生成：先分块并行摘要，再汇总成最终 message，避免单次调用塞不下整个 diff。默认开启。"
   },
   "commit.mapReduceThreshold": {
     "name": "分块生成阈值",
+    "desc_en": "Map-reduce chunked generation kicks in only when the diff exceeds this size (default 5000); smaller diffs generate in a single call, which is simpler. Raise to keep more commits single-call, lower to chunk large diffs sooner.",
     "desc": "diff 超过该大小（默认 5000）才启用 map-reduce 分块生成，小于该值直接单次生成更省事。调大让更多 commit 走单次调用，调小则大 diff 更早分块。"
   },
   "compaction.asyncEnabled": {
@@ -725,6 +739,7 @@
   },
   "compaction.autoContinue": {
     "name": "压缩后自动继续",
+    "desc_en": "Automatically continue the current work after post-turn threshold maintenance, without you sending another message. Default true; scripted or headless runs that want compaction-to-stop for external scheduling can set false.",
     "desc": "回合后阈值维护完成后自动继续当前工作，不必你再发一条消息。默认 true。脚本化/无头运行若希望「压缩即停」以便外部调度，可设为 false。"
   },
   "compaction.dropUseless": {
@@ -757,6 +772,7 @@
   },
   "compaction.keepRecentTokens": {
     "name": "近期保留 token 量",
+    "desc_en": "Target size of recent conversation kept verbatim (not summarized) after summary-style compaction, default 20000 tokens; larger keeps more recent detail for smaller compaction gain, smaller recycles the window more aggressively.",
     "desc": "摘要型压缩完成后，逐字保留（不进摘要）的近期对话目标规模，默认 20000 token。调大保留更多近期细节、压缩收益变小；调小则更激进的窗口回收。"
   },
   "compaction.methodOrder": {
@@ -769,6 +785,7 @@
   },
   "compaction.remoteEndpoint": {
     "name": "远程压缩端点",
+    "desc_en": "Custom OpenAI-compatible remote compaction endpoint; unset by default = the current route's built-in remote compaction. Most users should keep it unset; configure only to use a separate or cheaper summarization server.",
     "desc": "自定义 OpenAI 兼容的远程压缩服务端点。默认未设置，即用当前路由自带的 remote 压缩能力。多数用户应保持未设；只有想用独立/更便宜的服务器做摘要时才配置。"
   },
   "compaction.remoteStreamingV2Enabled": {
@@ -777,6 +794,7 @@
   },
   "compaction.reserveTokens": {
     "name": "压缩保留额度",
+    "desc_en": "Reserve margin used by reserve-based threshold judgment. Unset by default: automatically the larger of 16384 tokens and 15% of the model window (small windows fall back to proportional retention). Only meaningful when neither thresholdPercent nor thresholdTokens is enabled.",
     "desc": "基于保留额度（reserve）的阈值判定所用的余量。默认未设置：自动取「16384 token 与模型窗口 15%」中的较大者（小窗口退回按比例保留）。仅当 thresholdPercent/thresholdTokens 都未启用百分比/固定阈值时才有意义。"
   },
   "compaction.supersedeReads": {
@@ -793,6 +811,7 @@
   },
   "compaction.v2RetainedMessageBudget": {
     "name": "流式压缩保留预算",
+    "desc_en": "Token budget cap for recent messages retained by streaming remote compaction (v2), default 64000; larger keeps more recent context at higher post-compaction window usage.",
     "desc": "流式远程压缩（v2）保留的近期消息 token 预算上限，默认 64000。控制压缩后「原样保留的近期消息」规模，调大保留更多近况、压缩后窗口占用更高。"
   },
   "completion.notify": {
@@ -837,6 +856,7 @@
   },
   "cycleOrder": {
     "name": "模型循环顺序",
+    "desc_en": "Order for quickly cycling models in the TUI, default [\"smol\", \"default\", \"slow\"], elements being model role names bound to those roles. Replaced wholesale: project-level config overrides the whole global array.",
     "desc": "在 TUI 中快速循环切换模型的顺序，默认 [\"smol\", \"default\", \"slow\"]，元素为模型角色名（对应 smol/default/slow 三个角色绑定）。数组替换语义：项目层配置会整体覆盖全局数组。"
   },
   "debug.enabled": {
@@ -862,6 +882,7 @@
   },
   "dev.autoqaConsent": {
     "name": "上报同意状态",
+    "desc_en": "Consent record for automatic issue reporting (dev.autoqa): unset = not asked yet; granted = consented; denied = refused. Default unset (this machine shows denied, i.e. refused). Usually written automatically by the first prompt — no need to edit by hand.",
     "desc": "自动问题上报（dev.autoqa）的同意记录：unset = 尚未询问；granted = 已同意上报；denied = 已拒绝。默认 unset（本机显示 denied，即拒绝过）。此值通常由首次询问自动写入，无需手改。",
     "options": [
       "unset",
@@ -875,14 +896,17 @@
   },
   "dev.autoqaPush.token": {
     "name": "上报凭证",
+    "desc_en": "Auth token for the receiver at dev.autoqaPush.endpoint; credential-type setting, redacted in `omp config list` output. Only needed for self-hosted/private reporting endpoints, unset by default.",
     "desc": "dev.autoqaPush.endpoint 接收端的鉴权令牌。属于凭据类设置（credential），`omp config list` 输出中脱敏。仅自建/私有上报服务需要，默认未设置。"
   },
   "disabledExtensions": {
     "name": "禁用扩展列表",
+    "desc_en": "Array of disabled extension names, empty by default; listed extensions are not loaded (their MCP servers, tools and context injections all go away) — easier than deleting entries from the extensions array for a temporary pause.",
     "desc": "被禁用的扩展名称数组，默认空。列出的扩展不加载（其提供的 MCP 服务器、工具与上下文注入全部失效），不必从 extensions 数组里删除条目，临时停用更方便。"
   },
   "disabledProviders": {
     "name": "禁用提供商列表",
+    "desc_en": "Array of disabled model provider ids, empty by default; listed providers and their models are excluded during discovery and never appear in the model list, e.g. [\"ollama\", \"openrouter\"]. Note the array is replaced wholesale: project-level config overrides rather than merges the global array.",
     "desc": "被禁用的模型提供商 id 数组，默认空；其中的 provider 及其模型在发现阶段被整体排除，不再出现在模型列表。例：[\"ollama\", \"openrouter\"]。注意数组为整体替换语义：项目层配置会覆盖而非合并全局数组。"
   },
   "display.cacheMissMarker": {
@@ -977,6 +1001,7 @@
   },
   "edit.modelVariants": {
     "name": "按文件覆盖编辑变体",
+    "desc_en": "Mapping from filename patterns to edit.mode variants (key = file pattern, value = one of the edit.mode variants), empty by default — e.g. a laxer variant just for generated JSON files. Leave empty for normal use.",
     "desc": "按文件名模式为不同文件使用不同 edit.mode 变体的映射表（键=文件模式，值=edit.mode 的某个变体），默认空。例如给生成类 JSON 文件单独指定宽松变体。普通用户留空即可。"
   },
   "edit.recoverInlineEdits": {
@@ -993,10 +1018,12 @@
   },
   "enabledModels": {
     "name": "模型白名单",
+    "desc_en": "Whitelist of allowed model ids, empty by default = no filtering, all models usable; when set, only the listed models appear in the model picker, combinable with disabledProviders to narrow the catalog. The array is replaced wholesale and supports per-path (project) overrides.",
     "desc": "允许使用的模型 id 数组，默认空 = 不做白名单过滤、全部可用。设置后只有列出的模型出现在模型选择器；与 disabledProviders 配合可精细收窄可用模型面。数组为整体替换语义，且支持按路径（项目）覆盖。"
   },
   "enabledProviders": {
     "name": "提供商白名单",
+    "desc_en": "Whitelist of allowed provider ids, empty by default = all usable; when set, only whitelisted providers are discovered and loaded, handy to hide misconfigured providers and reduce noise. Supports per-path overrides; the array is replaced wholesale.",
     "desc": "允许使用的提供商 id 数组，默认空 = 全部可用。设置后仅白名单内 provider 会被发现与加载，适合屏蔽未配置好的 provider 减少噪音；同样支持按路径覆盖，数组整体替换。"
   },
   "error.notify": {
@@ -1013,6 +1040,7 @@
   },
   "eval.autoBackground.thresholdMs": {
     "name": "eval 转后台阈值",
+    "desc_en": "An eval cell running longer than this many milliseconds (default 60000 = 60 seconds) moves to background automatically; only effective when eval.autoBackground.enabled is on.",
     "desc": "eval 单元运行超过该毫秒数（默认 60000，即 60 秒）自动转后台。仅 eval.autoBackground.enabled 开启时生效。"
   },
   "eval.autoProvision": {
@@ -1053,6 +1081,7 @@
   },
   "extensions": {
     "name": "扩展定义列表",
+    "desc_en": "Array of extension definitions (Gemini-style extensions), each with name/path etc., providing MCP servers, extra tools and context injection. Empty by default; extension files live in ~/.omp/agent/extensions/ and this array registers the entries to enable.",
     "desc": "扩展（Gemini 风格 extensions）定义数组，每项含 name/path 等，可为 omp 提供 MCP 服务器、额外工具与上下文注入。默认空。扩展文件本身放 ~/.omp/agent/extensions/，此数组登记要启用的条目。"
   },
   "externalThinking": {
@@ -1091,38 +1120,47 @@
   },
   "gc.archive": {
     "name": "清理会话归档",
+    "desc_en": "Part of session-store garbage collection: allows cleaning archive files of old sessions. Default true (inferred, undocumented upstream); the gc family controls automatic cleanup of ~/.omp session storage — turn it off if you never want omp to delete archives.",
     "desc": "会话存储垃圾回收的一部分：允许清理旧会话的归档文件。默认 true。（推测，官方未说明具体细节）gc 家族整体控制 ~/.omp 会话存储的自动清理；不想让 omp 自动删任何归档就关掉。"
   },
   "gc.blobs": {
     "name": "清理孤儿 blob",
+    "desc_en": "Garbage-collect blobs (attachments, binary artifacts, etc.) no longer referenced by any session. Default true (inferred, undocumented upstream); the main source of reclaimed disk space — beware if external scripts reference those blob files directly.",
     "desc": "垃圾回收时清理不再被任何会话引用的 blob（附件、二进制工件等）。默认 true。（推测，官方未说明细节）回收磁盘空间的主要来源；有外部脚本直接引用这些 blob 文件的要小心。"
   },
   "gc.coldArchiveAfterDays": {
     "name": "冷归档天数",
+    "desc_en": "Sessions archived longer than this many days (default 30) move to cold archive and become reclaimable by the cleanup flow (inferred, undocumented upstream); larger keeps them around longer, smaller frees disk sooner.",
     "desc": "会话归档存放超过该天数（默认 30）后转入「冷归档」，之后可被清理流程回收。（推测，官方未说明细节）调大保留更久，调小更快释放磁盘。"
   },
   "gc.retainNewestGlobal": {
     "name": "全局保留会话数",
+    "desc_en": "Unconditionally keep the newest N sessions (default 20) profile-wide from garbage collection (inferred, undocumented upstream); the safety floor against deleting your latest work — keep it at a sensible value.",
     "desc": "整个 profile 范围内无条件保留最近 N 个会话不被垃圾回收，默认 20。（推测，官方未说明细节）是防止误删最新工作的兜底线，建议保持合理值。"
   },
   "gc.retainNewestPerCwd": {
     "name": "每目录保留会话数",
+    "desc_en": "Always keep at least the newest N sessions (default 10) per working directory from collection (inferred, undocumented upstream); stops a heavily used project's history from being crowded out by other projects' growth.",
     "desc": "每个工作目录至少保留最近 N 个会话不被回收，默认 10。（推测，官方未说明细节）避免常用项目的历史被其他项目的增长挤掉。"
   },
   "gc.stale": {
     "name": "清理陈旧会话",
+    "desc_en": "Allow extra cleanup of stale sessions. Default false, i.e. no stale cleanup by default (inferred, undocumented upstream); when enabled, staleRetainDays/staleRetainNewest act as retention floors. Consider only under disk pressure.",
     "desc": "允许额外清理「陈旧（stale）」会话。默认 false，即默认不做 stale 清理。（推测，官方未说明细节）开启后配合 staleRetainDays/staleRetainNewest 作为保留底线。磁盘紧张时才考虑开。"
   },
   "gc.staleRetainDays": {
     "name": "陈旧保留天数",
+    "desc_en": "One floor of stale cleanup: sessions within the last this-many days (default 30) are not stale and are not cleaned (inferred, undocumented upstream); only effective when gc.stale is on.",
     "desc": "stale 清理的底线之一：最近该天数（默认 30）内的会话不算陈旧、不清理。（推测，官方未说明细节）仅 gc.stale 开启时生效。"
   },
   "gc.staleRetainNewest": {
     "name": "陈旧保留条数",
+    "desc_en": "Second floor of stale cleanup: the newest N (default 20) sessions in each scope are always kept (inferred, undocumented upstream); only effective when gc.stale is on.",
     "desc": "stale 清理的另一条底线：每个范围内最新 N 个（默认 20）会话始终保留。（推测，官方未说明细节）仅 gc.stale 开启时生效。"
   },
   "gc.wal": {
     "name": "清理 WAL 残留",
+    "desc_en": "Garbage-collect leftover SQLite WAL/SHM sidecar files. Default true (inferred, undocumented upstream); leftovers mostly come from abnormally exited databases and are rare after a clean shutdown.",
     "desc": "垃圾回收时清理残留的 SQLite WAL/SHM 边车文件。默认 true。（推测，官方未说明细节）残留 WAL 多来自异常退出的数据库，清掉可释放空间，正常关闭时本就很少残留。"
   },
   "generate_image.enabled": {
@@ -1203,14 +1241,17 @@
   },
   "hindsight.bankIdPrefix": {
     "name": "Hindsight 库前缀",
+    "desc_en": "Optional prefix prepended to the base bank id, unset by default; separates environments or teams on one Hindsight server (e.g. yilin-omp) so you do not share one library with others.",
     "desc": "加在基础 bank id 前面的可选前缀，默认未设置。用于在同一台 Hindsight 服务器上区分不同环境/团队（如 yilin-omp），避免与他人共用同一个库。"
   },
   "hindsight.bankMission": {
     "name": "Hindsight 库使命",
+    "desc_en": "Optional mission statement attached when omp creates a bank for you, unset by default; describe the library's purpose boundary (e.g. only this project's technical decisions) for the server's synthesis to respect.",
     "desc": "omp 为你创建 bank 时附加给该库的可选使命（mission）说明，默认未设置。可写上这个库的用途边界（如「只存本项目的技术决策」），供服务端综合时参考。"
   },
   "hindsight.debug": {
     "name": "Hindsight 调试日志",
+    "desc_en": "Logs Hindsight requests and backend debug output. Default false; when enabled, why-no-recall or retain-failure questions become obvious — keep off otherwise to avoid log noise.",
     "desc": "输出 Hindsight 的请求与后端调试日志。默认 false。启用后排查「为什么没召回/留存失败」一目了然；平时关闭避免日志噪音。"
   },
   "hindsight.mentalModelAutoSeed": {
@@ -1219,6 +1260,7 @@
   },
   "hindsight.mentalModelMaxRenderChars": {
     "name": "心智模型渲染上限",
+    "desc_en": "Maximum characters of mental models (curated summaries) rendered into the session, default 16000, truncated beyond; prevents an ever-growing model from blowing up the system prompt.",
     "desc": "心智模型（精选摘要）渲染进会话的最大字符数，默认 16000。超出截断，防止模型积累太多后把系统提示撑爆。"
   },
   "hindsight.mentalModelsEnabled": {
@@ -1227,6 +1269,7 @@
   },
   "hindsight.recallBudget": {
     "name": "召回努力档位",
+    "desc_en": "Retrieval effort level for recall: low / mid (default) / high — higher is more thorough but slower with more server load. Maps to the HINDSIGHT_RECALL_BUDGET environment variable.",
     "desc": "召回（recall）的检索努力档位：low / mid（默认）/ high，越高检索越全面但越慢、服务端开销越大。对应环境变量 HINDSIGHT_RECALL_BUDGET。",
     "options": [
       "low",
@@ -1236,42 +1279,52 @@
   },
   "hindsight.recallContextTurns": {
     "name": "召回查询上下文轮数",
+    "desc_en": "How many recent user turns are attached as context when assembling the recall query, default 1; larger represents recent intent better but sends more text to the server.",
     "desc": "组装召回查询时附带的前几个「用户回合」作为上下文，默认 1。调大查询更能代表近期意图，但也会送更多文本去服务端。"
   },
   "hindsight.recallMaxQueryChars": {
     "name": "召回查询长度上限",
+    "desc_en": "Maximum length of the recall query string, default 800 characters, truncated beyond; together with recallContextTurns it bounds the recall request size.",
     "desc": "召回查询字符串的最大长度，默认 800 字符，超出截断。与 recallContextTurns 共同控制召回请求的体积。"
   },
   "hindsight.recallMaxTokens": {
     "name": "召回结果 token 上限",
+    "desc_en": "Maximum tokens of recall results injected into context, default 1024; larger brings more memory at the cost of working context, smaller is leaner.",
     "desc": "召回结果注入上下文的最大 token 量，默认 1024。调大可带入更多记忆但挤占工作上下文；调小则更精简。"
   },
   "hindsight.recallTimeoutMs": {
     "name": "召回超时",
+    "desc_en": "Deadline in milliseconds for a single recall request, default 30000; a timeout never interrupts the coding session — that recall is just abandoned.",
     "desc": "单次召回请求的截止时间（毫秒），默认 30000。超时不影响编码会话继续，只是该次召回放弃。"
   },
   "hindsight.recallTypes": {
     "name": "召回记忆类型",
+    "desc_en": "List of Hindsight memory types allowed to be recalled, default [\"world\", \"experience\"] — world for factual knowledge, experience for lessons; types outside the list are never recalled. (inferred, undocumented upstream; whether other types such as observations are configurable follows the Hindsight docs)",
     "desc": "允许被召回的 Hindsight 记忆类型列表，默认 [\"world\", \"experience\"]：world 为事实性知识，experience 为经验记录。不在列表中的类型不会被召回。（推测：其他类型如观察/行为类是否可配以 Hindsight 文档为准）"
   },
   "hindsight.reflectTimeoutMs": {
     "name": "综合反思超时",
+    "desc_en": "Deadline for server-side synthesis/reflect operations (e.g. mental-model generation), default 120000 ms (2 minutes); raise it when synthesis on large banks is slow.",
     "desc": "Hindsight 服务端做综合反思（synthesis/reflect，如生成心智模型）的截止时间，默认 120000 毫秒（2 分钟）。大型 bank 综合较慢时可调大。"
   },
   "hindsight.requestTimeoutMs": {
     "name": "Hindsight 请求超时",
+    "desc_en": "Default deadline in milliseconds for Hindsight requests, default 30000; used by any request not covered by the recall/retain/reflect-specific timeouts.",
     "desc": "Hindsight 请求的默认截止时间（毫秒），默认 30000，未被 recall/retain/reflect 专用超时覆盖的请求都用它。"
   },
   "hindsight.retainContext": {
     "name": "留存上下文标签",
+    "desc_en": "Context label sent together with retained content, default \"omp\", telling the server these memories come from omp sessions; distinguishes sources when several tools share one bank.",
     "desc": "留存（retain）数据时随内容一起发送的上下文标签，默认 \"omp\"，让服务端知道这批记忆来自 omp 会话。多工具共用一个 bank 时可区分来源。"
   },
   "hindsight.retainEveryNTurns": {
     "name": "留存间隔回合数",
+    "desc_en": "Minimum number of user turns between automatic retains, default 3 (one retain every 3 user turns, plus session boundaries); larger reduces request frequency, smaller is timelier.",
     "desc": "自动留存之间最少间隔的用户回合数，默认 3（每 3 个用户回合留存一次，外加会话边界）。调大减少请求频率，调小记忆更即时。"
   },
   "hindsight.retainMission": {
     "name": "留存指令",
+    "desc_en": "Optional instruction sent with retain operations (e.g. prefer architecture decisions, ignore trivial debugging), unset by default; shapes how the server organizes memory content.",
     "desc": "随留存操作发给服务端的可选指令（如「优先记录架构决策，忽略琐碎调试过程」），默认未设置。影响服务端如何组织记忆内容。"
   },
   "hindsight.retainMode": {
@@ -1284,10 +1337,12 @@
   },
   "hindsight.retainOverlapTurns": {
     "name": "留存块重叠轮数",
+    "desc_en": "Number of overlapping turns between adjacent retain chunks in last-turn mode, default 2, avoiding context loss at chunk boundaries; meaningless in full-session mode.",
     "desc": "last-turn 模式下相邻留存块之间重叠的回合数，默认 2，避免切分边界处丢上下文。full-session 模式下无意义。"
   },
   "hindsight.retainTimeoutMs": {
     "name": "留存超时",
+    "desc_en": "Deadline in milliseconds for a single retain request, default 60000; large session-boundary retains can be slow, so relax it if needed.",
     "desc": "单次留存请求的截止时间（毫秒），默认 60000。会话边界的大批量留存可能较慢，超时可放宽。"
   },
   "hindsight.scoping": {
@@ -1349,6 +1404,7 @@
   },
   "images.urls.credentials": {
     "name": "图片后端凭据",
+    "desc_en": "Per-backend credential mapping for image URL backends (record) (inferred, undocumented upstream) — e.g. tokens needed by tailscale/cloudflared or custom image hosts; credential-type, redacted in list output, unset by default.",
     "desc": "各图片外链后端的凭据映射（记录型）。（推测，官方未说明细节）如 tailscle/cloudflared 或自定义图床所需的 token；属凭据类，列表输出中脱敏，默认未设置。"
   },
   "images.urls.enabled": {
@@ -1357,6 +1413,7 @@
   },
   "images.urls.options": {
     "name": "图片后端选项",
+    "desc_en": "Per-backend extra options for image URL backends (record keyed by backend name), empty by default (inferred, undocumented upstream); for passing custom parameters to specific backends. Leave empty for normal use.",
     "desc": "各图片外链后端的附加选项（记录型，键为后端名）。默认空。（推测，官方未说明细节）用于给特定后端传自定义参数；普通用户留空。"
   },
   "images.urls.publicBaseUrl": {
@@ -1534,66 +1591,82 @@
   },
   "memories.enabled": {
     "name": "本地记忆管线开关",
+    "desc_en": "Master switch of the local memory backend's background pipeline: when on, omp distills saved sessions in the background at startup into memory_summary.md / MEMORY.md etc. and injects Memory Guidance at startup. Default false (the memory subsystem is off by default). Works with memory.backend.",
     "desc": "local 记忆后端后台管线的总开关：开启后 omp 启动时在后台蒸馏已保存的会话，生成 memory_summary.md / MEMORY.md 等文件并在启动时注入 Memory Guidance。默认 false（memory 子系统整体默认关闭）。与 memory.backend 配合。"
   },
   "memories.fallbackTokenLimit": {
     "name": "记忆兜底 token 预算",
+    "desc_en": "Fallback budget in tokens used by the memory pipeline when the model declares no context window, default 16000; normally computed from the model window, this only covers missing metadata.",
     "desc": "所用模型没有声明上下文窗口大小时，记忆管线使用的兜底预算，默认 16000 token。正常情况下按模型窗口自动计算，此值只在缺失元数据时兜底。"
   },
   "memories.maxRawMemoriesForGlobal": {
     "name": "合并输入条数上限",
+    "desc_en": "Cap on raw session memories entering the consolidation stage, default 200; excess is excluded so consolidation calls cannot balloon; larger is more thorough but costlier and slower.",
     "desc": "进入合并（consolidation）阶段的原始会话记忆条数上限，默认 200。超出部分不参与合并，防止合并调用无限膨胀；调大合并更全面但更贵更慢。"
   },
   "memories.maxRolloutAgeDays": {
     "name": "会话最大年龄天数",
+    "desc_en": "The memory pipeline ignores sessions older than this many days (default 30) — very old sessions never join distillation, which is why old history does not apply right after first enabling local memory; raise it to include older history.",
     "desc": "记忆管线忽略超过该天数（默认 30）的旧会话——太久远的会话不参与蒸馏。首次开启 local 记忆时老会话不生效即因此；调大可纳入更久历史。"
   },
   "memories.maxRolloutsPerStartup": {
     "name": "单次启动处理上限",
+    "desc_en": "Maximum sessions (rollouts) distilled per startup, default 64 (this machine: 16); caps background work per launch so enabling memories does not cause a long heavy startup — the rest continue on later launches.",
     "desc": "每次启动最多处理的待蒸馏会话（rollout）数量，默认 64（本机已改为 16）。限制单次启动的后台工作量，避免开启初期长时间高负载；剩余会话留到后续启动继续。"
   },
   "memories.minRolloutIdleHours": {
     "name": "会话最小闲置小时",
+    "desc_en": "Sessions touched within this many hours (default 12) count as still active and are skipped, preventing in-progress work from being frozen into memory prematurely; smaller updates memories sooner but may capture half-finished work.",
     "desc": "距现在不足该小时数（默认 12）的会话视为仍活跃，跳过不蒸馏。防止把正在进行的工作过早固化成记忆；调小记忆更新更及时但可能抓到半成品。"
   },
   "memories.phase1InputTokenLimit": {
     "name": "单会话抽取输入上限",
+    "desc_en": "Token cap on one session's input in stage-1 (per-session extraction), default 4000; longer sessions are truncated — bounds the size and cost of each extraction call.",
     "desc": "阶段 1（逐会话抽取）单个会话输入的 token 上限，默认 4000，超长会话截断。控制每次抽取调用的体积与费用。"
   },
   "memories.phase2HeartbeatSeconds": {
     "name": "合并租约心跳秒数",
+    "desc_en": "Heartbeat interval in seconds for stage-2 (consolidation) leases, default 30 — heartbeats prove a task is alive so other processes do not take it over as timed out. Usually untouched.",
     "desc": "阶段 2（合并）任务租约的心跳间隔（秒），默认 30：心跳证明任务还活着，防止被其他进程误判超时接管。一般不动。"
   },
   "memories.phase2LeaseSeconds": {
     "name": "合并任务租约秒数",
+    "desc_en": "Lease duration in seconds for stage-2 (consolidation) tasks, default 180; leases coordinate which process consolidates under multi-process concurrency, avoiding duplicate work.",
     "desc": "阶段 2（合并）任务的租约时长（秒），默认 180。多进程并发跑记忆管线时用租约协调谁做合并，避免重复劳动。"
   },
   "memories.phase2RetryDelaySeconds": {
     "name": "合并重试延迟秒数",
+    "desc_en": "Wait in seconds before retrying a failed stage-2 (consolidation) task, default 180; pairs with phase2LeaseSeconds; rarely needs changing.",
     "desc": "阶段 2（合并）任务失败后的重试等待时间（秒），默认 180。与 phase2LeaseSeconds 配合构成合并任务的失败恢复节奏；一般无需修改。"
   },
   "memories.rolloutPayloadPercent": {
     "name": "会话载荷占比",
+    "desc_en": "Fraction of the model context budget that session payload may occupy, default 0.7 (70%), the rest reserved for system prompt and output; with a small window, session input is scaled down proportionally.",
     "desc": "会话内容（payload）可占模型上下文预算的比例，默认 0.7（70%），其余留给系统提示与输出。模型窗口小时自动按比例缩小会话输入。"
   },
   "memories.stage1Concurrency": {
     "name": "抽取并发数",
+    "desc_en": "Concurrency of stage-1 per-session extraction tasks, default 8 (this machine: 4); higher distills faster with more concurrent and costlier calls, lower is gentler.",
     "desc": "阶段 1 逐会话抽取的并发任务数，默认 8（本机已改为 4）。调大蒸馏更快、并发调用更多更贵；调小更温和。"
   },
   "memories.stage1LeaseSeconds": {
     "name": "抽取任务租约秒数",
+    "desc_en": "Lease duration in seconds for stage-1 extraction tasks, default 120 — how concurrent processes claim tasks and take them over on timeout.",
     "desc": "阶段 1 抽取任务的租约时长（秒），默认 120，用于多进程并发时的任务认领与超时接管。"
   },
   "memories.stage1RetryDelaySeconds": {
     "name": "抽取重试延迟秒数",
+    "desc_en": "Wait in seconds before retrying a failed stage-1 (per-session extraction) task, default 120; together with stage1LeaseSeconds it forms the failure-recovery rhythm of extraction.",
     "desc": "阶段 1（逐会话抽取）任务失败后的重试等待时间（秒），默认 120。与 stage1LeaseSeconds 配合构成抽取任务的失败恢复节奏。"
   },
   "memories.summaryInjectionTokenLimit": {
     "name": "注入摘要 token 上限",
+    "desc_en": "Approximate token cap on the startup injection of memory_summary plus learned.md lessons combined, default 5000; larger injects more memory background at the cost of working context, smaller is leaner.",
     "desc": "启动时注入的 memory_summary 摘要 + learned.md 捕获教训合计的近似 token 上限，默认 5000。调大注入更多记忆背景、挤占工作上下文；调小更精炼。"
   },
   "memories.threadScanLimit": {
     "name": "会话扫描条数上限",
+    "desc_en": "Maximum number of recent session records scanned when the memory pipeline starts, default 300; bounds startup cost when history is huge.",
     "desc": "记忆管线启动时最多扫描的最近会话记录条数，默认 300。极多历史会话时限制扫描范围，控制启动开销。"
   },
   "memory.backend": {
@@ -1629,6 +1702,7 @@
   },
   "mnemopi.debug": {
     "name": "记忆调试日志",
+    "desc_en": "Debug logging switch for the Mnemopi memory backend; logs database, embedding model and LLM extraction details, handy for diagnosing memories not written or not recalled; noisier logs — turn it back off after troubleshooting. Default false.",
     "desc": "Mnemopi 记忆后端的调试日志开关。开启后记录数据库、嵌入模型与 LLM 抽取的运行细节，便于排查「记忆不写入/不召回」类问题；日志更啰嗦，排障后建议关回。默认 false。"
   },
   "mnemopi.embeddingApiKey": {
@@ -1657,6 +1731,7 @@
   },
   "mnemopi.injectionTokenLimit": {
     "name": "记忆注入预算",
+    "desc_en": "Approximate token budget for memory content injected into context per call, truncated beyond; larger = fuller recall but crowds the working context, smaller saves context but may drop key memories. Default 5000.",
     "desc": "每次注入上下文的记忆内容近似 token 预算，超出部分截断。调大→召回内容更全但挤占正文上下文；调小→省上下文但可能丢关键记忆。默认 5000。"
   },
   "mnemopi.llmApiKey": {
@@ -1694,18 +1769,22 @@
   },
   "mnemopi.recallContextTurns": {
     "name": "召回上下文轮数",
+    "desc_en": "How many recent user messages accompany the recall query as context, making recall better fit the current topic; 0 = current message only; larger is more accurate but the query grows. Default 3.",
     "desc": "构造召回查询时，附带最近几轮用户消息作为上下文，让召回更贴合当前话题。0=只用当前消息。调大→召回更准但查询更长。默认 3。"
   },
   "mnemopi.recallLimit": {
     "name": "召回条数上限",
+    "desc_en": "Maximum number of memory entries injected per recall; larger = fuller memory in context but more crowded and token-hungry, smaller keeps only the most relevant few. Default 8.",
     "desc": "单次召回最多注入的记忆条数。调大→上下文里的记忆更全但更挤、更费 token；调小→只保留最相关的几条。默认 8。"
   },
   "mnemopi.recallMaxQueryChars": {
     "name": "召回查询长度",
+    "desc_en": "Maximum length in characters of the combined recall query, truncated beyond; prevents stuffing an over-long conversation into the retrieval query. Rarely needs changing. Default 4000.",
     "desc": "组合后的召回查询字符串最大长度（字符），超出截断。防止把超长对话整段塞进检索查询。一般不必改。默认 4000。"
   },
   "mnemopi.retainEveryNTurns": {
     "name": "自动记忆间隔",
+    "desc_en": "Minimum interval in user turns between automatic retains: memory is written automatically only every N user turns; smaller = timelier but costlier extraction, larger = cheaper but may miss things. Default 4.",
     "desc": "自动保留（retain）对话的最小用户轮数间隔：每 N 个用户轮次才自动写入一次记忆。调小→记忆更及时但抽取开销大；调大→更省但可能漏记。默认 4。"
   },
   "mnemopi.scoping": {
@@ -1743,10 +1822,12 @@
   },
   "modelPresets": {
     "name": "模型预设组合",
+    "desc_en": "Named presets bundling a set of modelRoles plus a default thinking level into one switchable preset (names limited to safe characters); handy to flip between a work configuration and a review configuration. Empty object by default.",
     "desc": "命名预设：把一组 modelRoles（模型角色分配）+ 默认思考档位打包成一个可切换的预设（名称仅限字母等安全字符）。适合在「干活配置/审查配置」间一键切换。默认空对象（无自定义预设）。"
   },
   "modelProviderOrder": {
     "name": "供应商排序",
+    "desc_en": "Array setting the display/sort priority of providers in the model picker (/model browser), arranging provider groups in this order. Empty by default = built-in order; set it to surface your favorite providers first.",
     "desc": "模型选择器（/model 浏览器）中供应商的展示/排序优先级数组，按此顺序排列供应商分组。默认空数组=用内置顺序。想让常用供应商排前面时配置。"
   },
   "modelRoleStorage": {
@@ -1759,10 +1840,12 @@
   },
   "modelRoles": {
     "name": "模型角色分配",
+    "desc_en": "Which model each role (default/smol/slow/plan/vision/tiny/task/commit/web, etc.) binds to, shaped like \"role\": \"provider/model-id\". Roles decide which model serves each scenario — commit uses a fast model, default is the main one. See /models or `omp --list-models` for options; this is the core cost-and-speed configuration.",
     "desc": "各角色（default/smol/slow/plan/vision/tiny/task/commit/web 等）绑定哪个模型，形如 \"角色\": \"provider/model-id\"。角色影响对应场景用哪个模型：如 commit 用快模型、default 决定主力。可用 /models 或 omp --list-models 查可用模型。影响费用与速度的核心配置。"
   },
   "modelTags": {
     "name": "模型显示标签",
+    "desc_en": "Custom display name and color per model, shaped like {\"provider/model\": {\"name\": \"alias\", \"color\": \"#hex\"}}; tag keys also appear as recognizable entries in pickers. Display only — never changes which model is actually called. Empty object by default.",
     "desc": "给某模型自定义显示名与颜色（形如 {\"provider/model\": {\"name\": \"别名\", \"color\": \"#hex\"}}），标签键还会作为选择器里的可辨识条目。仅影响显示与挑选体验，不改变实际调用的模型。默认空对象。"
   },
   "omitThinking": {
@@ -1836,6 +1919,7 @@
   },
   "providers.anthropic.slowMode": {
     "name": "低优先级通道",
+    "desc_en": "Whether direct Anthropic requests use the low-priority channel: off = never (default); auto = pick the low-priority channel when the provider offers it (steadier at peak, possibly slower, with a channel label in the status line). Suits subscription tiers that value peak success rate over speed.",
     "desc": "Anthropic 直连请求是否使用低优先级（low-priority）通道。off=不使用（默认）；auto=在供应商提供时自动选用低优先级通道（高峰更稳，可能更慢），状态栏会显示通道标签。适合订阅档对速度不敏感、想提高高峰成功率的场景。",
     "options": [
       "off",
@@ -2080,10 +2164,12 @@
   },
   "retry.baseDelayMs": {
     "name": "退避基线(ms)",
+    "desc_en": "Initial wait in milliseconds for automatic API retries, with later waits multiplying per the backoff policy. Default 500 — higher is gentler on rate limits but slower to recover, lower the opposite. Works with maxRetries/maxDelayMs.",
     "desc": "API 出错自动重试的初始等待毫秒数，后续按退避策略在此基础上倍增。默认 500。调大→对限流更温和但恢复更慢；调小→恢复快但可能撞限流。配合 maxRetries/maxDelayMs 使用。"
   },
   "retry.enabled": {
     "name": "自动重试",
+    "desc_en": "Master switch for automatic retries on API errors (rate limits, timeouts, 5xx, etc.); off means a failed request throws immediately and you decide the next step. Keep it on for unattended long runs. Default true.",
     "desc": "API 错误（限流、超时、5xx 等）时自动重试的总开关。关闭后请求失败立即抛错，由你自己决定下一步。无人值守长任务建议保持开启。默认 true。"
   },
   "retry.fallbackChains": {
@@ -2133,14 +2219,17 @@
   },
   "searxng.basicPassword": {
     "name": "SearXNG密码",
+    "desc_en": "Password for HTTP Basic auth on a self-hosted SearXNG instance; must be set together with basicUsername (setting only one errors at request time). For authenticated private instances; credential-type, keep it secret. Empty by default.",
     "desc": "自建 SearXNG 实例 HTTP Basic 认证的密码，与 basicUsername 必须成对设置（只设其一会在请求时报错）。用于有认证的私有实例；凭据类配置注意保密。默认空。"
   },
   "searxng.basicUsername": {
     "name": "SearXNG用户名",
+    "desc_en": "Username for HTTP Basic auth (RFC 7617, must not contain a colon) on a self-hosted SearXNG instance, used together with basicPassword; pairs with the private instance at searxng.endpoint. Empty by default.",
     "desc": "自建 SearXNG 实例 HTTP Basic 认证的用户名（RFC 7617，用户名不能含冒号），与 basicPassword 成对使用。配合 searxng.endpoint 指向的私有实例。默认空。"
   },
   "searxng.categories": {
     "name": "SearXNG分类",
+    "desc_en": "Additional categories query parameter on search requests (e.g. general, images, it, science), limiting search categories; empty = the parameter is not sent, the instance decides. Empty by default.",
     "desc": "搜索请求附加的 categories 查询参数（如 general、images、it、science），限定搜索类别。留空=不发该参数，由实例默认决定。默认空。"
   },
   "searxng.endpoint": {
@@ -2149,18 +2238,22 @@
   },
   "searxng.engines": {
     "name": "SearXNG引擎",
+    "desc_en": "Additional engines query parameter naming the upstream engines to enable (comma-separated, e.g. google,bing,duckduckgo); empty = the instance default engine set. Empty by default.",
     "desc": "搜索请求附加的 engines 查询参数，指定启用哪些上游引擎（逗号分隔，如 google,bing,duckduckgo）。留空=实例默认引擎集。默认空。"
   },
   "searxng.language": {
     "name": "SearXNG语言",
+    "desc_en": "Additional language query parameter (e.g. zh-CN, en) affecting result language and region; empty = instance default. Suggest zh-CN for Chinese retrieval. Empty by default.",
     "desc": "搜索请求附加的 language 查询参数（如 zh-CN、en），影响结果语言与区域。留空=实例默认。中文检索场景建议设 zh-CN。默认空。"
   },
   "searxng.safesearch": {
     "name": "SearXNG安全搜索",
+    "desc_en": "Safe-search level: 0 = off, 1 = moderate, 2 = strict, sent as-is as the safesearch parameter; other values error. Empty = the parameter is not sent. Empty by default.",
     "desc": "安全搜索级别：0=关闭、1=中等（moderate）、2=严格（strict），直接作为 safesearch 参数发送；设其他值会报错。留空=不发该参数。默认空。"
   },
   "searxng.token": {
     "name": "SearXNG令牌",
+    "desc_en": "Bearer token for accessing a SearXNG instance, sent as Authorization: Bearer <token>; alternative to Basic auth. Can be replaced by the SEARXNG_TOKEN environment variable. Credential-type, keep it secret. Empty by default.",
     "desc": "访问 SearXNG 实例用的 Bearer 令牌，请求时以 Authorization: Bearer <token> 发送；与 Basic 认证二选一。可用 SEARXNG_TOKEN 环境变量替代。凭据类配置注意保密。默认空。"
   },
   "secrets.enabled": {
@@ -2173,6 +2266,7 @@
   },
   "setupVersion": {
     "name": "设置向导版本",
+    "desc_en": "Internal state recording which version of the initial setup flow you have completed; with startup.setupWizard on, newly added onboarding steps are shown once per version bump. Editing by hand is meaningless — leave it alone. Default 0 (this machine shows 2 = second-version onboarding completed).",
     "desc": "内部状态：记录你已完成到哪一版初始设置流程。配合 startup.setupWizard——每升一版且开关开启时，把新增的引导步骤展示一次。手动改无意义，保持不动。默认 0（本机为 2，表示已完成第 2 版引导）。"
   },
   "share.redactSecrets": {
@@ -2193,10 +2287,12 @@
   },
   "sharpshooter.injectionTokenLimit": {
     "name": "决策记忆注入预算",
+    "desc_en": "Approximate token budget when Sharpshooter project decision memories (confirmed decisions in architecture.md/product.md/style.md, etc.) are injected into context, truncated beyond it; larger is fuller reference but crowds context. Default 15000.",
     "desc": "Sharpshooter 项目决策记忆（architecture.md/product.md/style.md 等已确认决策）注入上下文时的近似 token 预算，超出截断。调大→决策参考更全但挤占上下文。默认 15000。"
   },
   "sharpshooter.intervalMinutes": {
     "name": "决策整合间隔",
+    "desc_en": "Minimum interval in minutes between Sharpshooter consolidations: within the interval, consolidation is skipped (not_due) and queued decision deltas merge into the memory files next round. Default 5; larger saves calls but delays memory updates.",
     "desc": "Sharpshooter 整合（consolidation）的最小间隔分钟数：距上次整合不足该间隔时跳过（not_due），排队中的决策增量下轮再并入记忆文件。默认 5。调大→整合更省但记忆更新更迟。"
   },
   "sharpshooter.model": {
@@ -2209,22 +2305,27 @@
   },
   "shellMinimizer.except": {
     "name": "压缩排除名单",
+    "desc_en": "Deny-list of filters excluded from output compression (empty = exclude none) (inferred, undocumented upstream — selection is by filter name); try a small list first when you want certain output kept verbatim. Default empty array.",
     "desc": "排除名单：不参与输出压缩的过滤器列表（空数组=不排除任何项）。按「过滤器名称」选择属推断行为（推测，官方未说明名单粒度），想让某类输出保留完整原样时先少量试用验证。默认空数组。"
   },
   "shellMinimizer.legacyFilters": {
     "name": "旧版过滤器",
+    "desc_en": "Use legacy filter implementations instead of the current ones (unset = engine default) (inferred, undocumented upstream — inferred from the key name); a fallback switch when new filters misbehave on certain output. Default unset.",
     "desc": "改用旧版过滤器实现而非现行版本（未设置=跟随引擎默认）。从键名推断（推测，官方未说明具体差异），新过滤器对某些输出表现异常时的回退开关。默认未设（unset）。"
   },
   "shellMinimizer.maxCaptureBytes": {
     "name": "压缩捕获上限",
+    "desc_en": "Maximum captured bytes of raw output that enter compression; beyond it, output takes the normal truncation/artifact-spill path instead. Default 4194304 (4 MiB); shrink under memory pressure, enlarge to compress huge logs too.",
     "desc": "参与压缩的原始输出最大捕获字节数，超出部分不进入压缩管线（走常规截断/artifact 溢出）。默认 4194304（4 MiB）。内存紧张可调小；超大日志也想压缩则调大。"
   },
   "shellMinimizer.only": {
     "name": "压缩仅限名单",
+    "desc_en": "Allow-list: when non-empty, only the listed filters are applied for compression (empty = no filtering, all default filters used) (inferred, undocumented upstream — selection is by filter name); try a small list first to verify. Default empty array.",
     "desc": "仅启用名单：非空时只应用列出的过滤器做压缩（空数组=不过滤、用全部默认过滤器）。按「过滤器名称」选择属推断行为（推测，官方未说明名单粒度），建议先少量试用验证效果。默认空数组。"
   },
   "shellMinimizer.settingsPath": {
     "name": "压缩自定义配置",
+    "desc_en": "Path to a custom Shell Minimizer config file passed to the compression engine instead of the built-in one (format defined by the engine, undocumented upstream); for deep customization of compression rules, empty = built-in. Default empty.",
     "desc": "自定义 Shell Minimizer 配置文件的路径，传给压缩引擎替代内置配置（文件格式由引擎定义，官方未说明）。想深度定制压缩规则时使用；留空用内置。默认空。"
   },
   "shellMinimizer.sourceOutlineLevel": {
@@ -2237,6 +2338,7 @@
   },
   "shellPath": {
     "name": "Shell 路径",
+    "desc_en": "Path to the external shell executable. Ordinary bash tool calls run in the built-in POSIX shell regardless; this decides which shell named services, supported terminal routing and interactive ! commands use (a bash path also provides env/rc snapshots for sessions). Use `pwsh -Command` explicitly for PowerShell syntax. This machine: Git bash.",
     "desc": "外部 shell 可执行文件路径。普通 bash 工具调用默认跑在内置 POSIX shell 里，不受此项影响；它决定命名服务、受支持的终端路由与交互式 ! 命令用哪个 shell（bash 路径还能为会话提供环境/rc 快照）。想用 PowerShell 语法需显式调 pwsh -Command。本机为 Git bash。"
   },
   "showHardwareCursor": {
@@ -2249,34 +2351,42 @@
   },
   "skills.customDirectories": {
     "name": "技能自定义目录",
+    "desc_en": "Array of extra skill discovery directories; each immediate subdirectory of each directory is one skill (<dir>/<skill>/SKILL.md). Overrides default discovery locations when set — good for mounting a team-shared skill library. Default empty array.",
     "desc": "额外的技能发现目录数组，每个目录下一层每子目录一个技能（<dir>/<skill>/SKILL.md）。配置后覆盖默认发现位置。适合团队共享技能库挂载。默认空数组。"
   },
   "skills.enableAgentsProject": {
     "name": "项目Agent技能",
+    "desc_en": "Whether to discover skills from the project's .agent/skills/ and .agents/skills/ directories (walking up to the repo root); one entry point for sharing skills with Claude Code and friends — turn off for skills in untrusted repositories. Default true.",
     "desc": "是否从项目的 .agent/skills/ 与 .agents/skills/ 目录发现技能（沿工作目录向仓库根 walking）。这是与 Claude Code 等兼容工具共享技能的入口之一；不信任某仓库的技能时可关。默认 true。"
   },
   "skills.enableAgentsUser": {
     "name": "用户Agent技能",
+    "desc_en": "Whether to discover skills from the user-level ~/.agent/skills/ and ~/.agents/skills/ directories (across all projects). Turn it off to reduce scanning and name clashes if you do not use these compatibility directories. Default true.",
     "desc": "是否从用户级 ~/.agent/skills/ 与 ~/.agents/skills/ 目录发现技能（对全部项目生效）。不用这些兼容目录可关，减少扫描与重名冲突。默认 true。"
   },
   "skills.enableClaudeProject": {
     "name": "项目Claude技能",
+    "desc_en": "Whether to discover skills from the project's .claude/skills/ directory, making Claude Code skills available in omp too. Note this is repo-portable content — inspect a fresh clone before enabling. Default true.",
     "desc": "是否从项目的 .claude/skills/ 目录发现技能，让 Claude Code 装的技能在 omp 里也可用。注意这是仓库可携带内容，新克隆的项目先检查再启用。默认 true。"
   },
   "skills.enableClaudeUser": {
     "name": "用户Claude技能",
+    "desc_en": "Whether to discover skills from the user-level ~/.claude/skills/ directory (sharing skills installed for Claude Code across projects). The built-in default is off; enable it to reuse a Claude skill library. Default false.",
     "desc": "是否从用户级 ~/.claude/skills/ 目录发现技能（跨项目共享你为 Claude Code 装的技能）。omp 当前内置默认为关闭；想复用 Claude 技能库时打开。默认 false。"
   },
   "skills.enableCodexUser": {
     "name": "用户Codex技能",
+    "desc_en": "Whether to discover skills from the user-level ~/.codex/skills/ directory (reusing Codex CLI skills). The built-in default is off; keep it off if you do not use Codex. Default false.",
     "desc": "是否从用户级 ~/.codex/skills/ 目录发现技能（复用 Codex CLI 的技能）。omp 当前内置默认为关闭；不用 Codex 就保持关闭。默认 false。"
   },
   "skills.enablePiProject": {
     "name": "项目原生技能",
+    "desc_en": "Whether to discover skills from the project's .omp/skills/ directory (native omp project skills, walking up to the repo root); the main entry for repo-bundled workflow skills — turn off for untrusted repositories. Default true.",
     "desc": "是否从项目的 .omp/skills/ 目录发现技能（omp 原生项目技能，含向仓库根 walking）。仓库自带工作流技能的主要入口；不信任的仓库可关。默认 true。"
   },
   "skills.enablePiUser": {
     "name": "用户原生技能",
+    "desc_en": "Whether to discover skills from the user-level ~/.omp/agent/skills/ directory (your own global skill library, including managed-skills auto-learning artifacts). Turning it off disables your own library; keep it on normally. Default true.",
     "desc": "是否从用户级 ~/.omp/agent/skills/ 目录发现技能（你自己的全局技能库，含 managed-skills 自动学习产物）。关掉等于禁用自己的技能库，一般保持开。默认 true。"
   },
   "skills.enableSkillCommands": {
@@ -2285,14 +2395,17 @@
   },
   "skills.enabled": {
     "name": "技能总开关",
+    "desc_en": "Master switch for skill discovery and loading; off means no skills from any source are discovered or loaded and the Skills page of /extensions empties. One-shot equivalent: `omp --no-skills`. Default true.",
     "desc": "技能发现与加载的总开关。关闭后所有来源的技能都不再发现/加载，/extensions 的 Skills 页也清空；等价的一次性开关还有 omp --no-skills。默认 true。"
   },
   "skills.ignoredSkills": {
     "name": "技能黑名单",
+    "desc_en": "Glob-based deny-list of skills (e.g. \"*-experimental\"), never loaded even when also matched by the includeSkills allow-list; for blocking dangerous or interfering skills. Default empty array.",
     "desc": "按 glob 名单排除技能（如 \"*-experimental\"），即使同时命中 includeSkills 白名单也不加载。屏蔽某些危险或干扰匹配的技能时使用。默认空数组。"
   },
   "skills.includeSkills": {
     "name": "技能白名单",
+    "desc_en": "Glob-based allow-list keeping only matching skills (e.g. \"git-*\", postgres), empty = include all; converges the system prompt when too many skills pollute it. Combine with ignoredSkills: allow-list first, then deny-list. Default empty array.",
     "desc": "按 glob 名单只保留匹配的技能（如 \"git-*\"、postgres），空数组=全部包含。技能太多污染系统提示时用来收敛。与 ignoredSkills 组合：先白名单后黑名单。默认空数组。"
   },
   "skills.registryUrl": {
@@ -2435,6 +2548,7 @@
   },
   "statusLine.leftSegments": {
     "name": "状态栏左段",
+    "desc_en": "Custom segments and order for the left side of the status line (default [\"vim\",\"model\",\"mode\",\"path\",\"git\",\"pr\"]); only effective when statusLine.preset is custom, ignored by other presets. Available segments are the 27 statusLine segments (model/git/cost/context_pct, etc.).",
     "desc": "自定义状态栏左侧段及其顺序（默认 [\"vim\",\"model\",\"mode\",\"path\",\"git\",\"pr\"]）。注意：仅 statusLine.preset 为 custom 时生效，其他预设忽略此项。可用段名见 statusLine 27 个段（model/git/cost/context_pct 等）。"
   },
   "statusLine.preset": {
@@ -2452,10 +2566,12 @@
   },
   "statusLine.rightSegments": {
     "name": "状态栏右段",
+    "desc_en": "Custom segments and order for the right side of the status line (default [\"session_name\",\"token_total\",\"cost\",\"context_pct\"]); only effective when statusLine.preset is custom, ignored by other presets.",
     "desc": "自定义状态栏右侧段及其顺序（默认 [\"session_name\",\"token_total\",\"cost\",\"context_pct\"]）。仅 statusLine.preset 为 custom 时生效，其他预设忽略此项。"
   },
   "statusLine.segmentOptions": {
     "name": "状态栏段选项",
+    "desc_en": "Fine-tuning options for individual status line segments, recorded like {\"<segment>\": {...}}, empty object by default = segment defaults. Advanced customization; available keys vary by segment, most users need not touch it.",
     "desc": "对个别状态栏段的微调选项（记录形如 {\"<段名>\": {...}}，默认空对象=全部用段默认值）。属高级定制项，具体可用键随段而异；一般用户不必碰。"
   },
   "statusLine.separator": {
@@ -2505,6 +2621,7 @@
   },
   "stt.language": {
     "name": "识别语言",
+    "desc_en": "Language code for speech recognition, default \"en\" (English); for Chinese voice input set zh or zh-CN — accuracy differs markedly. Behavior when empty depends on the engine.",
     "desc": "语音识别的语言代码，默认 \"en\"（英语）。中文语音输入建议改成 zh 或 zh-CN，识别准确率会明显不同。留空行为视引擎而定。"
   },
   "stt.submitTrigger": {
@@ -2528,10 +2645,12 @@
   },
   "task.agentAdvisor": {
     "name": "按代理Advisor覆盖",
+    "desc_en": "Per-agent (agent id) overrides of advisor (advisory review) configuration, shaped like {\"<agent>\": {...}}; enable or configure advisor review for one subagent without touching global settings. Empty object by default = follow global.",
     "desc": "按代理名（agent id）覆盖其 advisor（顾问审查）配置的记录，形如 {\"<代理名>\": {...}}。可让某个子代理单独启用/配置 advisor 审查，而不影响全局。默认空对象=跟随全局。"
   },
   "task.agentCompactionThresholdOverrides": {
     "name": "按代理压缩阈值",
+    "desc_en": "Per-agent overrides of the compaction trigger threshold; raise it for long-running subagents (fewer interruptions) or lower it for short ones (save context). Empty object by default = use the global compaction threshold.",
     "desc": "按代理名覆盖其上下文压缩（compaction）触发阈值的记录。长跑型子代理可调高阈值少打扰，短平快子代理可调低省上下文。默认空对象=用全局 compaction 阈值。"
   },
   "task.agentIdleTtlMs": {
@@ -2540,14 +2659,17 @@
   },
   "task.agentModelOverrides": {
     "name": "按代理模型覆盖",
+    "desc_en": "Per-agent model overrides, shaped like {\"<agent>\": \"provider/model-id\"}; give a specific subagent (e.g. a reviewer) a different model than its role resolves to. Empty object by default = resolve by role.",
     "desc": "按代理名覆盖所用模型的记录，形如 {\"<代理名>\": \"provider/model-id\"}。给特定子代理（如审查型）指定与角色不同的模型。默认空对象=全部按角色解析。"
   },
   "task.agentPrewalk": {
     "name": "按代理预走覆盖",
+    "desc_en": "Per-agent overrides of the prewalk (plan first, then hand off to a fast model) switch, configurable in the /agents panel; also applies to user agents with prewalk frontmatter. Empty object by default = follow global logic such as task.prewalk.",
     "desc": "按代理名覆盖其 prewalk（先规划后交棒快模型）开关的记录，可在 /agents 面板配置；对配置了 prewalk frontmatter 的用户代理同样生效。默认空对象=跟随 task.prewalk 等全局逻辑。"
   },
   "task.agentServiceTierOverrides": {
     "name": "按代理服务档覆盖",
+    "desc_en": "Per-agent overrides of the service tier, e.g. let a critical subagent use the priority tier while the rest stay standard. Empty object by default = inherit the main agent / global tier setting.",
     "desc": "按代理名覆盖其服务档（service tier）的记录。可让关键子代理用 priority 档、其余用标准档。默认空对象=继承主代理/全局 tier 设置。"
   },
   "task.batch": {
@@ -2556,6 +2678,7 @@
   },
   "task.disabledAgents": {
     "name": "禁用代理名单",
+    "desc_en": "Array of built-in/extension agents to disable — agents on the list can no longer be dispatched by the task tool; use it to block expensive or error-prone specialist agents. Empty by default = all available.",
     "desc": "要禁用的内置/扩展代理名单数组，名单内代理不再可被 task 工具派发。屏蔽昂贵或易跑偏的专用代理时使用。默认空数组=全部可用。"
   },
   "task.eager": {
@@ -2682,26 +2805,32 @@
   },
   "thinkingBudgets.high": {
     "name": "思考预算high",
+    "desc_en": "Maximum thinking-token budget for the high level, for models that accept a thinking-budget parameter; higher levels think deeper but slower and pricier. Default 16384 — normally adjust via /think or in-session commands; editing budgets per level is fine-tuning.",
     "desc": "high 档思考的最大思考 token 预算，供支持思考预算参数的模型使用。档位越高想得越深但更慢更贵。默认 16384。一般用 /think 或会话内指令调档即可，逐项改预算属精调。"
   },
   "thinkingBudgets.low": {
     "name": "思考预算low",
+    "desc_en": "Maximum thinking-token budget for the low thinking level. Default 2048 — for light decisions, optimized for speed and cost.",
     "desc": "low 档思考的最大思考 token 预算。默认 2048。低档适合轻决策，贵在快与省。"
   },
   "thinkingBudgets.max": {
     "name": "思考预算max",
+    "desc_en": "Maximum thinking-token budget for the max (highest) thinking level. Default 32768 — the priciest tier, used with ultrathink; ignored by models without support.",
     "desc": "max 档（最高思考档）的最大思考 token 预算。默认 32768。顶档最贵，配合 ultrathink 使用；模型不支持时被忽略。"
   },
   "thinkingBudgets.medium": {
     "name": "思考预算medium",
+    "desc_en": "Maximum thinking-token budget for the medium thinking level. Default 8192 — the everyday default balancing quality and cost.",
     "desc": "medium 档思考的最大思考 token 预算。默认 8192。日常默认档，平衡质量与开销。"
   },
   "thinkingBudgets.minimal": {
     "name": "思考预算minimal",
+    "desc_en": "Maximum thinking-token budget for the minimal thinking level. Default 1024 — the cheapest, barely-thinks tier, for mechanical steps.",
     "desc": "minimal 档思考的最大思考 token 预算。默认 1024。几乎不思考的最省档，适合机械步骤。"
   },
   "thinkingBudgets.xhigh": {
     "name": "思考预算xhigh",
+    "desc_en": "Maximum thinking-token budget for the xhigh (second-highest) level. Default 32768 — same budget as max but semantically below it; caps automatic thinking when providers.autoThinkingMaxEffort=xhigh.",
     "desc": "xhigh（次顶）档思考的最大思考 token 预算。默认 32768。与 max 同预算但语义上低于顶档；providers.autoThinkingMaxEffort=xhigh 时自动思考以此封顶。"
   },
   "tier.advisor": {
@@ -2987,14 +3116,17 @@
   },
   "tui.maxInlineImageColumns": {
     "name": "内联图片宽度上限",
+    "desc_en": "Maximum width in terminal columns of inline images in the terminal; 0 = unlimited (bounded by terminal width only). Default 100; shrink it when large images take over the screen.",
     "desc": "终端内联图片的最大宽度（终端列数）。0=不限宽（只受终端宽度约束）。默认 100。大图占屏可调小。"
   },
   "tui.maxInlineImageRows": {
     "name": "内联图片高度上限",
+    "desc_en": "Maximum height in terminal rows of inline images; 0 = viewport-limited (60% of the terminal height). Default 20.",
     "desc": "终端内联图片的最大高度（终端行数）。0=只用视口限制（终端高度的 60%）。默认 20。"
   },
   "tui.maxInlineImages": {
     "name": "内联图片数量上限",
+    "desc_en": "Cap on inline images kept as active terminal graphics; beyond the cap, older images degrade to text placeholders on the next full redraw. 0 = keep all without eviction. Default 8.",
     "desc": "保留为「活动终端图形」的内联图片数量上限，超限后旧图经整屏重绘退化为文字占位符。0=全部保留不淘汰。默认 8。"
   },
   "tui.mouse": {

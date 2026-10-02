@@ -496,7 +496,7 @@ function settingRow(it) {
   const desc = document.createElement('div');
   desc.className = 'desc';
   const bits = LANG === 'zh' ? [it.zh || it.key.split('.').pop()]
-                             : [it.desc || it.zh || enName(it.key)]; // 英文原文，上游为空回退中文
+                             : [it.desc || it.desc_en || enName(it.key)]; // 英文原文，上游为空用 desc_en，再退键名
   bits.push(`${t().typePrefix}: ${t().typeName(it.type)}`);
   desc.textContent = bits.join(' · ');
   desc.title = LANG === 'zh' ? (it.desc || '')          // 悬停见英文原文
