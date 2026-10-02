@@ -363,6 +363,29 @@ def usage_report():
     except json.JSONDecodeError:
         return {"error": "omp usage 输出不是合法 JSON"}
 
+def invalidate_usage(provider):
+    """跑 `omp usage invalidate`（可选 --provider）。provider 只允许
+    'all' 或已认证账号列表里的 provider id，白名单校验防注入。"""
+    args = ["omp", "usage", "invalidate", "--no-extensions"]
+    if provider not in (None, "", "all"):
+        provider = provider.strip().lower()
+        known = {str(r.get("provider", "")).lower()
+                 for r in (usage_report().get("reports") or [])}
+        if provider not in known:
+            return {"error": f"未知供应商: {provider}"}
+        args += ["--provider", provider]
+    try:
+        p = subprocess.run(args, capture_output=True, text=True, shell=False,
+                           encoding="utf-8", errors="replace", timeout=60)
+    except subprocess.TimeoutExpired:
+        return {"error": "omp usage invalidate 超时（60s）"}
+    except OSError as e:
+        return {"error": f"无法执行 omp: {e}"}
+    if p.returncode != 0:
+        err = (p.stderr or "").strip().splitlines()
+        return {"error": err[0] if err else f"omp usage invalidate 退出码 {p.returncode}"}
+    return {"ok": True, "message": (p.stdout or "").strip()}
+
 
 class Handler(BaseHTTPRequestHandler):
     def _send(self, code, body, ctype="application/json; charset=utf-8"):
@@ -419,6 +442,9 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 self._send(200, json.dumps({"ok": True, **visibility_state()},
                                            ensure_ascii=False))
+        elif self.path == "/api/usage/invalidate":
+            self._send(200, json.dumps(
+                invalidate_usage(payload.get("provider")), ensure_ascii=False))
         else:
             self._send(404, "{}")
 

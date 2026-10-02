@@ -127,6 +127,7 @@
   .u-note { font-size: 11px; color: #8b93a1; padding: 4px 0 2px; border-top: 1px solid #242833;
             line-height: 1.5; }
   .u-extra { font-size: 11px; color: #8b93a1; margin-bottom: 8px; line-height: 1.6; }
+  .u-mini { padding: 2px 8px; font-size: 11px; }
   .role .rdesc { flex: 1; min-width: 0; font-size: 11px; color: #8b93a1;
                  line-height: 1.55; white-space: normal; }
   .roles-intro { font-size: 12px; color: #8b93a1; line-height: 1.7; margin-bottom: 12px;
@@ -176,6 +177,7 @@
 <div id="view-usage" style="display:none">
   <div class="toolbar">
     <button id="u-refresh"></button>
+    <button id="u-force" class="ghost"></button>
     <label><input type="checkbox" id="u-auto"><span id="u-auto-text"></span></label>
     <span class="count" id="u-updated"></span>
   </div>
@@ -258,6 +260,11 @@ const T = {
     uReset: '重置于 ', uResetNow: '即将重置',
     uNoUsageAcct: n => `无用量端点的账号 ×${n}`,
     uDisabledCred: n => `已停用凭据 ×${n}`,
+    uForce: '强刷',
+    uForceTitle: '失效缓存并向供应商重新拉取（omp usage invalidate）',
+    uForceAll: '全部强刷',
+    uForceDone: '已重新抓取最新用量',
+    uResetHint: '额度券需在 omp 会话中用 /usage reset 使用（CLI 无用券入口）',
   },
   en: {
     title: 'omp Settings Web',
@@ -325,6 +332,11 @@ const T = {
     uReset: 'resets ', uResetNow: 'resetting soon',
     uNoUsageAcct: n => `Accounts without usage endpoints ×${n}`,
     uDisabledCred: n => `Disabled credentials ×${n}`,
+    uForce: 'Force refresh',
+    uForceTitle: 'Invalidate cache and re-fetch from the provider (omp usage invalidate)',
+    uForceAll: 'Force refresh all',
+    uForceDone: 'Refreshed with latest usage',
+    uResetHint: 'Spend saved resets in an omp session via /usage reset (no CLI entry)',
   },
 };
 let LANG = localStorage.getItem('omp-ui-lang') === 'en' ? 'en' : 'zh';
@@ -352,6 +364,8 @@ function applyStaticLang() {
   document.getElementById('tab-usage').textContent = t().tabUsage;
   document.getElementById('u-refresh').textContent = t().uRefresh;
   document.getElementById('u-auto-text').textContent = t().uAuto;
+  document.getElementById('u-force').textContent = t().uForceAll;
+  document.getElementById('u-force').title = t().uForceTitle;
   document.getElementById('vm-q').placeholder = t().vmSearch;
   document.getElementById('vm-save').textContent = t().vmSave;
   document.getElementById('vm-reset').textContent = t().vmReset;
@@ -889,6 +903,12 @@ function uCard(rep) {
     ft.className = 'ftime'; ft.textContent = t().uFetched(fmtTime(rep.fetchedAt));
     head.appendChild(ft);
   }
+  const fb = document.createElement('button');
+  fb.className = 'ghost u-mini';
+  fb.textContent = t().uForce;
+  fb.title = t().uForceTitle;
+  fb.onclick = e => { e.stopPropagation(); invalidateUsage(rep.provider); };
+  head.appendChild(fb);
   card.appendChild(head);
 
   // 共享窗口（sharedGroup）在多个子供应商下重复出现，去重
@@ -910,7 +930,7 @@ function uCard(rep) {
   const rc = rep.resetCredits;
   if (rc && rc.availableCount) {
     const e = document.createElement('div');
-    e.className = 'u-note'; e.textContent = t().uCredits(rc.availableCount);
+    e.className = 'u-note'; e.textContent = t().uCredits(rc.availableCount) + ' · ' + t().uResetHint;
     card.appendChild(e);
   }
   for (const n of (rep.notes || [])) {
@@ -989,6 +1009,25 @@ function startUsageTimer() {
 }
 function stopUsageTimer() {
   if (us.timer) { clearInterval(us.timer); us.timer = null; }
+}
+document.getElementById('u-force').onclick = () => invalidateUsage('all');
+
+async function invalidateUsage(provider) {
+  const btn = document.getElementById('u-force');
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/usage/invalidate', {method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({provider})}).then(x => x.json());
+    if (r.error) { toast(t().failed(r.error), true); return; }
+    toast(t().uForceDone);
+    us.lastPoll = Date.now(); // 避免刚强刷完又被轮询立刻重抓
+    await loadUsage();
+  } catch (e) {
+    toast(t().failed(e.message || e), true);
+  } finally {
+    btn.disabled = false;
+  }
 }
 document.getElementById('u-refresh').onclick = () => loadUsage();
 

@@ -34,7 +34,7 @@ A tiny local web UI for [oh-my-pi (omp)](https://omp.sh): switch model roles and
 
 **用量 / Usage**
 
-- A visual dashboard mirroring `omp usage`: per-provider cards with progress bars for each rate-limit window (5h / 7d / weekly / monthly), used vs. remaining, live reset countdowns, account/plan info and reset-credit counts; shared windows are deduplicated. Manual refresh button + optional 60s auto-polling, friendly empty/error states. 复刻 omp `/usage` 的可视面板：按供应商分卡的限额进度条（5 小时/7 天/周/月窗口）、已用与剩余量、重置倒计时实时跳动、账号/套餐信息与重置额度券；共享窗口自动去重。手动刷新 + 可选 60 秒自动轮询，数据为空或拉取失败时给出提示而非白屏。
+- A visual dashboard mirroring `omp usage`: per-provider cards with progress bars for each rate-limit window (5h / 7d / weekly / monthly), used vs. remaining, live reset countdowns, account/plan info and reset-credit counts; shared windows are deduplicated. Manual refresh + per-provider or global force-refresh (`omp usage invalidate`, whitelist-validated) + optional 60s auto-polling, friendly empty/error states. Spending saved resets stays in the omp TUI (`/usage reset`) — there is no CLI redemption entry, so the panel shows a hint instead of a button. 复刻 omp `/usage` 的可视面板：按供应商分卡的限额进度条（5 小时/7 天/周/月窗口）、已用与剩余量、重置倒计时实时跳动、账号/套餐信息与重置额度券；共享窗口自动去重。手动刷新 + 单供应商/全局「强刷」（`omp usage invalidate`，白名单校验）+ 可选 60 秒自动轮询，数据为空或拉取失败时给出提示而非白屏。用券重置只能在 omp 会话里 /usage reset（CLI 无用券入口），面板在额度券行给出提示而不放按钮。
 
 ![usage dashboard](docs/screenshot-usage.png)
 
@@ -78,6 +78,7 @@ Server binds to `127.0.0.1` only. Value/role inputs are validated against a whit
 | `/api/settings` | GET | Full settings catalog (`omp config list --json`) + zh annotations + `__groupmap` |
 | `/api/set-key` | POST | `{"key": "...", "value": "..."}` — type-coerced scalar write, backup + targeted line edit |
 | `/api/usage` | GET | `omp usage --json` passthrough — per-provider quota/usage reports |
+| `/api/usage/invalidate` | POST | `{"provider": "all"|<provider id>}` — whitelist-checked `omp usage invalidate`, forces re-fetch |
 
 ## License
 
