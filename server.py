@@ -804,7 +804,12 @@ def set_role(role, value):
 
 def main():
     addr = ("127.0.0.1", PORT)
-    srv = ThreadingHTTPServer(addr, Handler)
+    srv = None
+    try:
+        srv = ThreadingHTTPServer(addr, Handler)
+    except OSError as e:
+        print(f"port {PORT} unavailable, another instance likely running: {e}")
+        return
     url = f"http://{addr[0]}:{PORT}"
     print(f"omp settings web ui -> {url}")
     if "--no-browser" not in sys.argv:
