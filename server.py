@@ -30,6 +30,8 @@ HERE = Path(__file__).parent
 CONFIG = Path.home() / ".omp" / "agent" / "config.yml"
 PORT = 8788
 EDITABLE_TYPES = {"string", "boolean", "number", "integer", "enum"}
+# pythonw 下无控制台，omp.exe 子进程会各自弹出新窗口；Windows 上一律隐藏
+NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
 ROLE_COMMENT = {
     "default": "主会话模型",
@@ -51,7 +53,7 @@ PLAIN_SCALAR = re.compile(r'[A-Za-z0-9_@.,/\-]+(?::[A-Za-z0-9_@.,/\-]+)*')
 
 def run(args):
     p = subprocess.run(args, capture_output=True, text=True, shell=False,
-                       encoding="utf-8", errors="replace")
+                       encoding="utf-8", errors="replace", creationflags=NO_WINDOW)
     return p.stdout
 
 
@@ -355,7 +357,7 @@ def usage_report():
         p = subprocess.run(
             ["omp", "usage", "--json", "--no-extensions"],
             capture_output=True, text=True, shell=False,
-            encoding="utf-8", errors="replace", timeout=120)
+            encoding="utf-8", errors="replace", timeout=120, creationflags=NO_WINDOW)
     except subprocess.TimeoutExpired:
         return {"error": "omp usage 超时（120s）"}
     except OSError as e:
@@ -381,7 +383,8 @@ def invalidate_usage(provider):
         args += ["--provider", provider]
     try:
         p = subprocess.run(args, capture_output=True, text=True, shell=False,
-                           encoding="utf-8", errors="replace", timeout=60)
+                           encoding="utf-8", errors="replace", timeout=60,
+                           creationflags=NO_WINDOW)
     except subprocess.TimeoutExpired:
         return {"error": "omp usage invalidate 超时（60s）"}
     except OSError as e:
